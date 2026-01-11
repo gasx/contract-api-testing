@@ -1,0 +1,22 @@
+{
+  "status": "OK",
+  "traceId": "abc-123",
+  "data": {
+    "user": {
+      "id": 10,
+      "name": "Ivan",
+      "email": "ivan@example.com"
+    },
+    "items": [
+      {
+        "sku": "A-1",
+        "qty": 2,
+        "price": 100.0
+      },
+      {
+        "sku": "B-2",
+        "qty": 1
+      }
+    ]
+  }
+}

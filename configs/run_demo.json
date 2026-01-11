@@ -1,0 +1,26 @@
+{
+  "baseUrl": "http://blablabla.ru",
+  "timeoutMs": 8000,
+  "tests": [
+    {
+      "testId": "T-DEMO-PASS",
+      "method": "GET",
+      "path": "/demo/pass",
+      "headers": {
+        "Accept": "application/json"
+      },
+      "contractFile": "contract.json",
+      "responseFile": "response_pass.json"
+    },
+    {
+      "testId": "T-DEMO-FAIL",
+      "method": "GET",
+      "path": "/demo/fail",
+      "headers": {
+        "Accept": "application/json"
+      },
+      "contractFile": "contract.json",
+      "responseFile": "response_fail.json"
+    }
+  ]
+}

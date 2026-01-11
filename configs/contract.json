@@ -1,0 +1,16 @@
+{
+  "contractId": "C-API-001",
+  "description": "Контракт для проверки структуры ответа операции",
+  "requiredPaths": [
+    "status",
+    "data.user.id",
+    "data.user.name",
+    "data.items[*].sku",
+    "data.items[*].qty"
+  ],
+  "optionalPaths": [
+    "traceId",
+    "data.user.email",
+    "data.items[*].price"
+  ]
+}
