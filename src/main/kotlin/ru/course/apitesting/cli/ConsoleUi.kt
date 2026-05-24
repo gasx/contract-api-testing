@@ -44,4 +44,22 @@ class ConsoleUi {
         println("$status | total:$total passed:$passed failed:$failed time:${sec}s")
         println("report: $outDir")
     }
+
+    fun printUsage() {
+        println("Использование:")
+        println("  ./gradlew run --args=\"--run <путь_к_run.json> --out <каталог_отчетов>\" --console=plain")
+        println()
+        println("Пример:")
+        println("  ./gradlew run --args=\"--run configs/run_demo.json --out build/reports\" --console=plain")
+    }
+
+    fun printSummary(results: List<TestResult>) {
+        val total = results.size
+        val passed = results.count { it.passed }
+        val failed = total - passed
+        val status = if (failed == 0) "BUILD PASS" else "BUILD FAIL"
+        println("------------------------------------------------------------")
+        println("$status | total:$total passed:$passed failed:$failed")
+    }
+
 }
