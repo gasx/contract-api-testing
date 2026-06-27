@@ -7,6 +7,7 @@ import ru.course.apitesting.http.HttpResult
 import ru.course.apitesting.report.TestResult
 import ru.course.apitesting.validate.ContractValidator
 import java.io.File
+import kotlin.system.measureTimeMillis
 
 class TestRunner(
     private val loader: ConfigLoader,
@@ -16,18 +17,24 @@ class TestRunner(
 ) {
     fun runAll(tests: List<ApiTestCase>): List<TestResult> {
         return tests.map { tc ->
-            val contractPath = resolve(tc.contractFile)
-            val contract = loader.loadContract(contractPath)
+            var result: TestResult
 
-            val httpResult: HttpResult = if (!tc.responseFile.isNullOrBlank()) {
-                val responsePath = resolve(tc.responseFile!!)
-                val body = loader.readTextFile(responsePath)
-                HttpResult(ok = true, status = 200, bodyText = body, error = null)
-            } else {
-                executor.execute(tc)
+            val durationMs = measureTimeMillis {
+                val contractPath = resolve(tc.contractFile)
+                val contract = loader.loadContract(contractPath)
+
+                val httpResult: HttpResult = if (!tc.responseFile.isNullOrBlank()) {
+                    val responsePath = resolve(tc.responseFile!!)
+                    val body = loader.readTextFile(responsePath)
+                    HttpResult(ok = true, status = 200, bodyText = body, error = null)
+                } else {
+                    executor.execute(tc)
+                }
+
+                result = validator.validate(tc, contract, httpResult)
             }
 
-            validator.validate(tc, contract, httpResult)
+            result.copy(durationMs = durationMs)
         }
     }
 
