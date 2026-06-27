@@ -58,8 +58,45 @@ class ConsoleUi {
         val passed = results.count { it.passed }
         val failed = total - passed
         val status = if (failed == 0) "BUILD PASS" else "BUILD FAIL"
+
         println("------------------------------------------------------------")
         println("$status | total:$total passed:$passed failed:$failed")
+        println()
+
+        println("PASSED TESTS")
+        println("------------")
+        results.filter { it.passed }.forEach {
+            println("[PASS] ${it.testId} | ${it.method} ${it.target}")
+        }
+
+        println()
+
+        println("FAILED TESTS")
+        println("------------")
+
+        val failedTests = results.filter { !it.passed }
+
+        if (failedTests.isEmpty()) {
+            println("No failed tests")
+        } else {
+            failedTests.forEach { test ->
+                println("[FAIL] ${test.testId} | ${test.method} ${test.target}")
+                println("       expected status: ${test.expectedStatus}")
+                println("       actual status  : ${test.actualStatus ?: "-"}")
+
+                if (test.violations.isEmpty()) {
+                    println("       reason         : unknown error")
+                } else {
+                    println("       errors:")
+                    test.violations.forEach { violation ->
+                        val path = if (violation.path.isBlank()) "-" else violation.path
+                        println("       - ${violation.code} | path: $path | ${violation.details}")
+                    }
+                }
+
+                println()
+            }
+        }
     }
 
 }
