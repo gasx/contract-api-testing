@@ -1,0 +1,13 @@
+{
+  "contractId": "C-PATCH-POST-FAIL",
+  "description": "Демонстрация отсутствия updatedAt после PATCH",
+  "requiredPaths": [
+    "id",
+    "title",
+    "updatedAt"
+  ],
+  "optionalPaths": [
+    "body",
+    "userId"
+  ]
+}

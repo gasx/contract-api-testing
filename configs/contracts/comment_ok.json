@@ -1,0 +1,12 @@
+{
+  "contractId": "C-COMMENT-OK",
+  "description": "Успешная проверка комментария",
+  "requiredPaths": [
+    "postId",
+    "id",
+    "name",
+    "email",
+    "body"
+  ],
+  "optionalPaths": []
+}

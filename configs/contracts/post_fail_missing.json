@@ -1,0 +1,15 @@
+{
+  "contractId": "C-POST-FAIL-MISSING",
+  "description": "Демонстрация отсутствующих полей",
+  "requiredPaths": [
+    "userId",
+    "id",
+    "title",
+    "body",
+    "author.name",
+    "metadata.createdAt"
+  ],
+  "optionalPaths": [
+    "traceId"
+  ]
+}

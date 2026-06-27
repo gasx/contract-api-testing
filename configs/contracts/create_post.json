@@ -1,0 +1,11 @@
+{
+  "contractId": "C-CREATE-POST",
+  "description": "Успешное создание post",
+  "requiredPaths": [
+    "id",
+    "title",
+    "body",
+    "userId"
+  ],
+  "optionalPaths": []
+}

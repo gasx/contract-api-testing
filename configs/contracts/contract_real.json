@@ -1,0 +1,12 @@
+{
+  "contractId": "C-REAL-001",
+  "description": "Проверка ответа /posts/1",
+  "requiredPaths": [
+    "userId",
+    "id",
+    "title",
+    "body",
+    "blabla"
+  ],
+  "optionalPaths": []
+}

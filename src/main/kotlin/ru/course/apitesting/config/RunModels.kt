@@ -1,6 +1,7 @@
 package ru.course.apitesting.config
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class RunConfig(
@@ -15,7 +16,7 @@ data class ApiTestCase(
     val method: String,
     val path: String,
     val headers: Map<String, String> = emptyMap(),
-    val body: String? = null,
+    val body: JsonElement? = null,
     val contractFile: String,
     val responseFile: String? = null
 )
