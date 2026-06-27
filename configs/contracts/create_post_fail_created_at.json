@@ -1,0 +1,12 @@
+{
+  "contractId": "C-CREATE-POST-FAIL",
+  "description": "Демонстрация отсутствия служебного поля createdAt",
+  "requiredPaths": [
+    "id",
+    "title",
+    "body",
+    "userId",
+    "createdAt"
+  ],
+  "optionalPaths": []
+}

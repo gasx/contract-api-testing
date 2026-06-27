@@ -1,0 +1,11 @@
+{
+  "contractId": "C-UPDATE-POST-OK",
+  "description": "Успешное обновление post",
+  "requiredPaths": [
+    "id",
+    "title",
+    "body",
+    "userId"
+  ],
+  "optionalPaths": []
+}

@@ -1,0 +1,11 @@
+{
+  "contractId": "C-POST-OK",
+  "description": "Успешная проверка объекта post",
+  "requiredPaths": [
+    "userId",
+    "id",
+    "title",
+    "body"
+  ],
+  "optionalPaths": []
+}

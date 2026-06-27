@@ -38,11 +38,13 @@ fun main(rawArgs: Array<String>) {
 
         ui.printSummary(results)
 
-        // Важно: тесты могут падать (FAILED), но это НЕ ошибка выполнения программы.
-        // Поэтому не выставляем non-zero exit code.
+        if (args.web) {
+            ru.course.apitesting.web.WebReportServer.start(results)
+        }
+
+
     } catch (t: Throwable) {
         System.err.println("FATAL: " + (t.message ?: t::class.qualifiedName))
         t.printStackTrace()
-        // Не вызываем exitProcess(1), чтобы Gradle :run не падал без необходимости.
     }
 }

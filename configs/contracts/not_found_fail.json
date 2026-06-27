@@ -1,0 +1,10 @@
+{
+  "contractId": "C-NOT-FOUND-FAIL",
+  "description": "Демонстрация ошибки HTTP-статуса",
+  "requiredPaths": [
+    "id",
+    "title",
+    "body"
+  ],
+  "optionalPaths": []
+}

@@ -15,8 +15,9 @@ class HttpExecutor(
             val resp: HttpResponse = client.request(url) {
                 method = io.ktor.http.HttpMethod.parse(tc.method.uppercase())
                 tc.headers.forEach { (k, v) -> header(k, v) }
-                if (tc.body != null) setBody(tc.body)
-            }
+                if (tc.body != null) {
+                    setBody(tc.body.toString())
+                }            }
             val body = resp.bodyAsText()
             HttpResult(ok = true, status = resp.status.value, bodyText = body, error = null)
         } catch (e: Exception) {

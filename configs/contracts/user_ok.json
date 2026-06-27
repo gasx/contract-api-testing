@@ -1,0 +1,18 @@
+{
+  "contractId": "C-USER-OK",
+  "description": "Успешная проверка пользователя",
+  "requiredPaths": [
+    "id",
+    "name",
+    "username",
+    "email",
+    "address.street",
+    "address.city",
+    "address.geo.lat",
+    "company.name"
+  ],
+  "optionalPaths": [
+    "phone",
+    "website"
+  ]
+}

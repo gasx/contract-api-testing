@@ -1,0 +1,119 @@
+{
+  "baseUrl": "https://jsonplaceholder.typicode.com",
+  "timeoutMs": 8000,
+  "tests": [
+    {
+      "testId": "T-GET-POST-OK",
+      "method": "GET",
+      "path": "/posts/1",
+      "headers": {
+        "Accept": "application/json"
+      },
+      "contractFile": "contracts/post_ok.json"
+    },
+    {
+      "testId": "T-GET-POST-MISSING-META",
+      "method": "GET",
+      "path": "/posts/1",
+      "headers": {
+        "Accept": "application/json"
+      },
+      "contractFile": "contracts/post_fail_missing.json"
+    },
+    {
+      "testId": "T-GET-USER-OK",
+      "method": "GET",
+      "path": "/users/1",
+      "headers": {
+        "Accept": "application/json"
+      },
+      "contractFile": "contracts/user_ok.json"
+    },
+    {
+      "testId": "T-GET-USER-MISSING-PROFILE",
+      "method": "GET",
+      "path": "/users/1",
+      "headers": {
+        "Accept": "application/json"
+      },
+      "contractFile": "contracts/user_fail_profile.json"
+    },
+    {
+      "testId": "T-GET-COMMENT-OK",
+      "method": "GET",
+      "path": "/comments/1",
+      "headers": {
+        "Accept": "application/json"
+      },
+      "contractFile": "contracts/comment_ok.json"
+    },
+    {
+      "testId": "T-POST-CREATE-OK",
+      "method": "POST",
+      "path": "/posts",
+      "headers": {
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "title": "test title",
+        "body": "test body",
+        "userId": 1
+      },
+      "contractFile": "contracts/create_post.json"
+    },
+    {
+      "testId": "T-POST-CREATE-MISSING-CREATED-AT",
+      "method": "POST",
+      "path": "/posts",
+      "headers": {
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "title": "test title",
+        "body": "test body",
+        "userId": 1
+      },
+      "contractFile": "contracts/create_post_fail_created_at.json"
+    },
+    {
+      "testId": "T-PUT-UPDATE-OK",
+      "method": "PUT",
+      "path": "/posts/1",
+      "headers": {
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "id": 1,
+        "title": "updated title",
+        "body": "updated body",
+        "userId": 1
+      },
+      "contractFile": "contracts/update_post_ok.json"
+    },
+    {
+      "testId": "T-PATCH-MISSING-UPDATED-AT",
+      "method": "PATCH",
+      "path": "/posts/1",
+      "headers": {
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "title": "patched title"
+      },
+      "contractFile": "contracts/patch_post_fail_updated_at.json"
+    },
+    {
+      "testId": "T-GET-NOT-FOUND",
+      "method": "GET",
+      "path": "/posts/999999",
+      "headers": {
+        "Accept": "application/json"
+      },
+      "contractFile": "contracts/not_found_fail.json"
+    }
+  ]
+}

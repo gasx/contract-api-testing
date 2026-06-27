@@ -1,0 +1,14 @@
+{
+  "contractId": "C-USER-FAIL-PROFILE",
+  "description": "Демонстрация нарушения вложенной структуры",
+  "requiredPaths": [
+    "id",
+    "name",
+    "profile.avatar",
+    "profile.role",
+    "settings.notifications.email"
+  ],
+  "optionalPaths": [
+    "lastLoginAt"
+  ]
+}

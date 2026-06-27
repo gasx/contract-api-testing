@@ -1,0 +1,12 @@
+{
+  "contractId": "C-PATCH-POST-OK",
+  "description": "Проверка частичного обновления post",
+  "requiredPaths": [
+    "id",
+    "title"
+  ],
+  "optionalPaths": [
+    "body",
+    "userId"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "contractId": "C-ALBUM-OK",
+  "description": "Успешная проверка альбома",
+  "requiredPaths": [
+    "userId",
+    "id",
+    "title"
+  ],
+  "optionalPaths": []
+}
