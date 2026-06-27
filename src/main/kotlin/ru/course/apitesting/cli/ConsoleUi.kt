@@ -59,6 +59,20 @@ class ConsoleUi {
         val failed = total - passed
         val status = if (failed == 0) "BUILD PASS" else "BUILD FAIL"
 
+        val successRate = if (total == 0) 0 else (passed * 100 / total)
+        val totalDuration = results.sumOf { it.durationMs }
+        val avgDuration = if (total == 0) 0 else totalDuration / total
+
+        val slowest = results.maxByOrNull { it.durationMs }
+        val fastest = results.minByOrNull { it.durationMs }
+
+        val allViolations = results.flatMap { it.violations }
+        val httpStatusErrors = allViolations.count { it.code == "STATUS_MISMATCH" }
+        val requiredMissing = allViolations.count { it.code == "REQUIRED_FIELD_MISSING" }
+        val optionalMissing = allViolations.count { it.code == "OPTIONAL_FIELD_MISSING" }
+        val jsonErrors = allViolations.count { it.code == "JSON_PARSE_ERROR" }
+        val httpErrors = allViolations.count { it.code == "HTTP_ERROR" }
+
         println("------------------------------------------------------------")
         println("$status | total:$total passed:$passed failed:$failed")
         println()
@@ -66,7 +80,7 @@ class ConsoleUi {
         println("PASSED TESTS")
         println("------------")
         results.filter { it.passed }.forEach {
-            println("[PASS] ${it.testId} | ${it.method} ${it.target}")
+            println("[PASS] ${it.testId} | ${it.method} ${it.target} | ${it.durationMs} ms")
         }
 
         println()
@@ -80,7 +94,7 @@ class ConsoleUi {
             println("No failed tests")
         } else {
             failedTests.forEach { test ->
-                println("[FAIL] ${test.testId} | ${test.method} ${test.target}")
+                println("[FAIL] ${test.testId} | ${test.method} ${test.target} | ${test.durationMs} ms")
                 println("       expected status: ${test.expectedStatus}")
                 println("       actual status  : ${test.actualStatus ?: "-"}")
 
@@ -97,6 +111,20 @@ class ConsoleUi {
                 println()
             }
         }
+
+        println("METRICS")
+        println("-------")
+        println("Success rate       : $successRate%")
+        println("Total duration     : $totalDuration ms")
+        println("Average test time  : $avgDuration ms")
+        println("Slowest test       : ${slowest?.testId ?: "-"} (${slowest?.durationMs ?: 0} ms)")
+        println("Fastest test       : ${fastest?.testId ?: "-"} (${fastest?.durationMs ?: 0} ms)")
+        println("Total violations   : ${allViolations.size}")
+        println("HTTP status errors : $httpStatusErrors")
+        println("Required missing   : $requiredMissing")
+        println("Optional missing   : $optionalMissing")
+        println("JSON errors        : $jsonErrors")
+        println("HTTP errors        : $httpErrors")
     }
 
 }

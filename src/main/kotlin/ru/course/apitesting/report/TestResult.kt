@@ -18,5 +18,6 @@ data class TestResult(
     val expectedStatus: Int,
     val actualStatus: Int?,
     val passed: Boolean,
-    val violations: List<Violation>
+    val violations: List<Violation>,
+    val durationMs: Long = 0
 )

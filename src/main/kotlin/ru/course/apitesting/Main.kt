@@ -9,6 +9,7 @@ import ru.course.apitesting.http.HttpExecutor
 import ru.course.apitesting.report.JUnitXmlWriter
 import ru.course.apitesting.report.ReportWriter
 import ru.course.apitesting.validate.ContractValidator
+import kotlin.concurrent.thread
 import java.io.File
 
 fun main(rawArgs: Array<String>) {
@@ -39,7 +40,28 @@ fun main(rawArgs: Array<String>) {
         ui.printSummary(results)
 
         if (args.web) {
-            ru.course.apitesting.web.WebReportServer.start(results)
+            println()
+            println("Запуск Web UI...")
+            println("После системных сообщений Ktor сводка будет выведена повторно.")
+            println()
+
+            kotlin.concurrent.thread {
+                ru.course.apitesting.web.WebReportServer.start(results)
+            }
+
+            Thread.sleep(1200)
+
+            println()
+            println("============================================================")
+            println("ИТОГОВАЯ СВОДКА ПОСЛЕ ЗАПУСКА WEB UI")
+            println("============================================================")
+            ui.printSummary(results)
+
+            println()
+            println("Web UI доступен по адресу: http://localhost:8080")
+            println("Для остановки нажмите Ctrl+C")
+
+            Thread.currentThread().join()
         }
 
 
