@@ -1,0 +1,17 @@
+openapi: 3.0.3
+
+info:
+  title: HTTPBin Download Test API
+  version: "1.0"
+
+paths:
+  /image/png:
+    get:
+      responses:
+        "200":
+          description: PNG-файл получен
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary

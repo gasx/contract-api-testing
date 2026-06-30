@@ -1,0 +1,56 @@
+openapi: 3.0.3
+
+info:
+  title: HTTPBingo Upload Test API
+  version: "1.0"
+
+paths:
+  /post:
+    post:
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - title
+              properties:
+                file:
+                  type: string
+                  format: binary
+                title:
+                  type: string
+      responses:
+        "200":
+          description: Файл принят
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - files
+                  - form
+                  - url
+                properties:
+                  files:
+                    type: object
+                    required:
+                      - file
+                    properties:
+                      file:
+                        type: array
+                        items:
+                          type: string
+                  form:
+                    type: object
+                    required:
+                      - title
+                    properties:
+                      title:
+                        type: array
+                        items:
+                          type: string
+                  url:
+                    type: string

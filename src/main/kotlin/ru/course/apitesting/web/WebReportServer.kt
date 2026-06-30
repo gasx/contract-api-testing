@@ -10,6 +10,11 @@ import io.ktor.server.routing.routing
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import ru.course.apitesting.report.TestResult
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.response.respond
+import io.ktor.server.response.respondFile
+import java.io.File
 
 object WebReportServer {
 
@@ -30,6 +35,48 @@ object WebReportServer {
                         json.encodeToString(results),
                         ContentType.Application.Json
                     )
+                }
+
+                get("/api/files/{testId}/{index}") {
+                    val testId = call.parameters["testId"]
+                    val index = call.parameters["index"]?.toIntOrNull()
+
+                    if (testId == null || index == null) {
+                        call.respond(HttpStatusCode.BadRequest)
+                        return@get
+                    }
+
+                    val transfer = results
+                        .firstOrNull { it.testId == testId }
+                        ?.fileTransfers
+                        ?.getOrNull(index)
+
+                    val localPath = transfer?.localPath
+
+                    if (
+                        transfer == null ||
+                        transfer.direction != "RECEIVED" ||
+                        localPath.isNullOrBlank()
+                    ) {
+                        call.respond(HttpStatusCode.NotFound)
+                        return@get
+                    }
+
+                    val file = File(localPath)
+
+                    if (!file.isFile) {
+                        call.respond(HttpStatusCode.NotFound)
+                        return@get
+                    }
+
+                    val fileName = file.name.replace("\"", "")
+
+                    call.response.headers.append(
+                        HttpHeaders.ContentDisposition,
+                        "inline; filename=\"$fileName\""
+                    )
+
+                    call.respondFile(file)
                 }
             }
         }
@@ -228,10 +275,47 @@ th {
   color: #fecaca;
   margin-bottom: 4px;
 }
+
 .small {
   color: var(--muted);
   font-size: 11px;
 }
+
+.file-transfer {
+  margin-top: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #0b1220;
+}
+
+.file-kind {
+  display: inline-block;
+  margin-bottom: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--blue);
+  text-transform: uppercase;
+}
+
+.file-link {
+  display: inline-block;
+  margin-top: 5px;
+  color: var(--blue);
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.file-preview {
+  display: block;
+  max-width: 130px;
+  max-height: 76px;
+  margin-top: 5px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
 @media (max-width: 1000px) {
   .cards { grid-template-columns: repeat(2, 1fr); }
   .grid { grid-template-columns: 1fr; }
@@ -341,6 +425,62 @@ function setFilter(filter, button) {
 
 function safe(v) {
   return v === null || v === undefined || v === '' ? '-' : String(v);
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function formatBytes(value) {
+  const bytes = Number(value) || 0;
+
+  if (bytes < 1024) {
+    return bytes + ' B';
+  }
+
+  if (bytes < 1024 * 1024) {
+    return (bytes / 1024).toFixed(1) + ' KB';
+  }
+
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function renderFileTransfers(test) {
+  const transfers = test.fileTransfers || [];
+
+  return transfers.map((file, index) => {
+    const received = file.direction === 'RECEIVED';
+    const kind = received ? 'Получен файл' : 'Отправлен файл';
+    const name = escapeHtml(file.fileName || 'Файл');
+    const type = escapeHtml(file.contentType || 'application/octet-stream');
+    const details = name + ' · ' + type + ' · ' + formatBytes(file.sizeBytes);
+    const href = '/api/files/' + encodeURIComponent(test.testId) + '/' + index;
+    const image = String(file.contentType || '')
+      .toLowerCase()
+      .startsWith('image/');
+
+    const preview = received && image
+      ? '<a href="' + href + '" target="_blank" onclick="event.stopPropagation()">' +
+          '<img class="file-preview" src="' + href + '" alt="' + name + '">' +
+        '</a>'
+      : '';
+
+    const link = received
+      ? '<a class="file-link" href="' + href + '" target="_blank" onclick="event.stopPropagation()">Открыть файл</a>'
+      : '';
+
+    return '<div class="file-transfer">' +
+      '<div class="file-kind">' + kind + '</div><br>' +
+      '<span class="small">' + details + '</span>' +
+      preview +
+      link +
+      '</div>';
+  }).join('');
 }
 
 function violationText(v) {
@@ -475,13 +615,16 @@ function renderTable() {
       currentFilter === r.method;
 
     const text = [
-      r.testId,
-      r.method,
-      r.target,
-      r.expectedStatus,
-      r.actualStatus,
-      ...r.violations.map(violationText)
-    ].join(' ').toLowerCase();
+  r.testId,
+  r.method,
+  r.target,
+  r.expectedStatus,
+  r.actualStatus,
+  ...r.violations.map(violationText),
+  ...(r.fileTransfers || []).map(file =>
+    [file.direction, file.fileName, file.contentType].join(' ')
+  )
+].join(' ').toLowerCase();
 
     return statusMatch && text.includes(q);
   });
@@ -501,8 +644,9 @@ function renderTable() {
     const tr = document.createElement('tr');
     tr.innerHTML =
       '<td>' + badge + '</td>' +
-      '<td><b>' + safe(r.testId) + '</b><br><span class="small">' + safe(r.contractId) + '</span></td>' +
-      '<td><span class="method">' + safe(r.method) + '</span> ' + safe(r.target) + '</td>' +
+    '<td><b>' + safe(r.testId) + '</b>' +
+    renderFileTransfers(r) +
+    '<br><span class="small">' + safe(r.contractId) + '</span></td>' +      '<td><span class="method">' + safe(r.method) + '</span> ' + safe(r.target) + '</td>' +
       '<td>ожидалось: <b>' + safe(r.expectedStatus) + '</b><br>получено: <b>' + safe(r.actualStatus) + '</b></td>' +
       '<td><b>' + safe(r.durationMs) + ' мс</b></td>' +
       '<td>' + errors + '</td>';
