@@ -6,8 +6,8 @@ import kotlinx.serialization.json.JsonElement
 @Serializable
 data class RunConfig(
     val baseUrl: String,
-    val timeoutMs: Long = 8000,
-    val tests: List<ApiTestCase> = emptyList()
+    val timeoutMs: Long = 10000,
+    val tests: List<ApiTestCase>
 )
 
 @Serializable
@@ -19,5 +19,17 @@ data class ApiTestCase(
     val headers: Map<String, String> = emptyMap(),
     val body: JsonElement? = null,
     val contractFile: String,
+    val multipart: List<MultipartPart> = emptyList(),
+    val downloadTo: String? = null,
+    val expectedContentType: String? = null,
     val responseFile: String? = null
+)
+
+@Serializable
+data class MultipartPart(
+    val name: String,
+    val value: String? = null,
+    val filePath: String? = null,
+    val fileName: String? = null,
+    val contentType: String? = null
 )

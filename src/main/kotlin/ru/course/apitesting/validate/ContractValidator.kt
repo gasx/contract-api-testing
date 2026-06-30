@@ -3,13 +3,14 @@ package ru.course.apitesting.validate
 import kotlinx.serialization.json.Json
 import ru.course.apitesting.config.ApiTestCase
 import ru.course.apitesting.http.HttpResult
+import ru.course.apitesting.report.FileTransferInfo
 import ru.course.apitesting.report.TestResult
 import ru.course.apitesting.report.Violation
 import ru.course.apitesting.schema.JsonSchemaValidator
 import ru.course.apitesting.schema.LoadedContract
+import java.io.File
 
 class ContractValidator {
-
     private val json = Json {
         isLenient = true
         ignoreUnknownKeys = true
@@ -23,6 +24,7 @@ class ContractValidator {
         val violations = mutableListOf<Violation>()
         val actualStatus = http.status
         val expectedStatus = contract.expectedStatus
+        val fileTransfers = collectFileTransfers(tc, http)
 
         if (!http.ok) {
             violations += Violation(
@@ -36,7 +38,8 @@ class ContractValidator {
                 contractId = contract.contractId,
                 expectedStatus = expectedStatus,
                 actualStatus = actualStatus,
-                violations = violations
+                violations = violations,
+                fileTransfers = fileTransfers
             )
         }
 
@@ -45,6 +48,41 @@ class ContractValidator {
                 code = "STATUS_MISMATCH",
                 path = "",
                 details = "Expected HTTP status $expectedStatus but got $actualStatus"
+            )
+        }
+
+        if (tc.downloadTo != null) {
+            val actualContentType = http.contentType ?: ""
+
+            if (
+                !tc.expectedContentType.isNullOrBlank() &&
+                !actualContentType.startsWith(
+                    tc.expectedContentType,
+                    ignoreCase = true
+                )
+            ) {
+                violations += Violation(
+                    code = "CONTENT_TYPE_MISMATCH",
+                    path = "",
+                    details = "Expected Content-Type ${tc.expectedContentType}, but got $actualContentType"
+                )
+            }
+
+            if (http.bodyBytes == null || http.bodyBytes.isEmpty()) {
+                violations += Violation(
+                    code = "FILE_EMPTY",
+                    path = "",
+                    details = "Response file is empty"
+                )
+            }
+
+            return buildResult(
+                tc = tc,
+                contractId = contract.contractId,
+                expectedStatus = expectedStatus,
+                actualStatus = actualStatus,
+                violations = violations,
+                fileTransfers = fileTransfers
             )
         }
 
@@ -64,7 +102,8 @@ class ContractValidator {
                 contractId = contract.contractId,
                 expectedStatus = expectedStatus,
                 actualStatus = actualStatus,
-                violations = violations
+                violations = violations,
+                fileTransfers = fileTransfers
             )
         }
 
@@ -105,8 +144,32 @@ class ContractValidator {
             contractId = contract.contractId,
             expectedStatus = expectedStatus,
             actualStatus = actualStatus,
-            violations = violations
+            violations = violations,
+            fileTransfers = fileTransfers
         )
+    }
+
+    private fun collectFileTransfers(
+        tc: ApiTestCase,
+        http: HttpResult
+    ): List<FileTransferInfo> {
+        val sentFiles = tc.multipart.mapNotNull { part ->
+            val filePath = part.filePath ?: return@mapNotNull null
+            val file = File(filePath)
+
+            if (!file.isFile) {
+                return@mapNotNull null
+            }
+
+            FileTransferInfo(
+                direction = "SENT",
+                fileName = part.fileName ?: file.name,
+                contentType = part.contentType ?: "application/octet-stream",
+                sizeBytes = file.length()
+            )
+        }
+
+        return sentFiles + listOfNotNull(http.downloadedFile)
     }
 
     private fun buildResult(
@@ -114,7 +177,8 @@ class ContractValidator {
         contractId: String,
         expectedStatus: Int,
         actualStatus: Int?,
-        violations: List<Violation>
+        violations: List<Violation>,
+        fileTransfers: List<FileTransferInfo>
     ): TestResult {
         val failCodes = setOf(
             "HTTP_ERROR",
@@ -123,7 +187,9 @@ class ContractValidator {
             "REQUIRED_PATH_MISSING",
             "TYPE_MISMATCH",
             "ENUM_MISMATCH",
-            "UNEXPECTED_PROPERTY"
+            "UNEXPECTED_PROPERTY",
+            "CONTENT_TYPE_MISMATCH",
+            "FILE_EMPTY"
         )
 
         val failed = violations.any { it.code in failCodes }
@@ -136,7 +202,8 @@ class ContractValidator {
             expectedStatus = expectedStatus,
             actualStatus = actualStatus,
             passed = !failed,
-            violations = violations
+            violations = violations,
+            fileTransfers = fileTransfers
         )
     }
 }

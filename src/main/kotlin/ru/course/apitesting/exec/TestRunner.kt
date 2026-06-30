@@ -30,6 +30,15 @@ class TestRunner(
                     testCase = tc
                 )
 
+                val preparedTestCase = tc.copy(
+                    multipart = tc.multipart.map { part ->
+                        part.copy(
+                            filePath = part.filePath?.let { resolve(it) }
+                        )
+                    },
+                    downloadTo = tc.downloadTo?.let { resolve(it) }
+                )
+
                 val httpResult: HttpResult =
                     if (!tc.responseFile.isNullOrBlank()) {
                         val responsePath = resolve(tc.responseFile!!)
@@ -38,15 +47,14 @@ class TestRunner(
                         HttpResult(
                             ok = true,
                             status = tc.expectedStatus,
-                            bodyText = body,
-                            error = null
+                            bodyText = body
                         )
                     } else {
-                        executor.execute(tc)
+                        executor.execute(preparedTestCase)
                     }
 
                 result = validator.validate(
-                    tc = tc,
+                    tc = preparedTestCase,
                     contract = contract,
                     http = httpResult
                 )

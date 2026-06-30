@@ -1,0 +1,60 @@
+{
+  "baseUrl": "https://httpbingo.org",
+  "timeoutMs": 15000,
+  "tests": [
+    {
+      "testId": "T-UPLOAD-FILE-OPENAPI",
+      "method": "POST",
+      "path": "/post",
+      "expectedStatus": 200,
+      "headers": {
+        "Accept": "application/json"
+      },
+      "multipart": [
+        {
+          "name": "file",
+          "filePath": "test-data/upload.txt",
+          "contentType": "text/plain"
+        },
+        {
+          "name": "title",
+          "value": "Файл для проверки contract-api-testing"
+        }
+      ],
+      "contractFile": "schemas/httpbin-upload-openapi.yaml"
+    },
+    {
+      "testId": "T-UPLOAD-FILE-JSON-SCHEMA",
+      "method": "POST",
+      "path": "/post",
+      "expectedStatus": 200,
+      "headers": {
+        "Accept": "application/json"
+      },
+      "multipart": [
+        {
+          "name": "file",
+          "filePath": "test-data/upload.txt",
+          "contentType": "text/plain"
+        },
+        {
+          "name": "title",
+          "value": "Файл для проверки contract-api-testing"
+        }
+      ],
+      "contractFile": "schemas/httpbin-upload.schema.json"
+    },
+    {
+      "testId": "T-DOWNLOAD-PNG",
+      "method": "GET",
+      "path": "/image/png",
+      "expectedStatus": 200,
+      "headers": {
+        "Accept": "image/png"
+      },
+      "downloadTo": "../build/downloads/httpbin-image.png",
+      "expectedContentType": "image/png",
+      "contractFile": "schemas/httpbin-download-openapi.yaml"
+    }
+  ]
+}
