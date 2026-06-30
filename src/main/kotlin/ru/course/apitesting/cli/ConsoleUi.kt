@@ -68,8 +68,8 @@ class ConsoleUi {
 
         val allViolations = results.flatMap { it.violations }
         val httpStatusErrors = allViolations.count { it.code == "STATUS_MISMATCH" }
-        val requiredMissing = allViolations.count { it.code == "REQUIRED_FIELD_MISSING" }
-        val optionalMissing = allViolations.count { it.code == "OPTIONAL_FIELD_MISSING" }
+        val requiredMissing = allViolations.count { it.code == "REQUIRED_PATH_MISSING" }
+        val optionalMissing = allViolations.count { it.code == "OPTIONAL_PATH_MISSING" }
         val jsonErrors = allViolations.count { it.code == "JSON_PARSE_ERROR" }
         val httpErrors = allViolations.count { it.code == "HTTP_ERROR" }
 
