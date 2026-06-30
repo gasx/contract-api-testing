@@ -15,6 +15,7 @@ data class ApiTestCase(
     val testId: String,
     val method: String,
     val path: String,
+    val expectedStatus: Int = 200,
     val headers: Map<String, String> = emptyMap(),
     val body: JsonElement? = null,
     val contractFile: String,

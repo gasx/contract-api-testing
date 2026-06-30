@@ -1,0 +1,26 @@
+{
+  "baseUrl": "https://jsonplaceholder.typicode.com",
+  "timeoutMs": 10000,
+  "tests": [
+    {
+      "testId": "T-GET-POST-OPENAPI",
+      "method": "GET",
+      "path": "/posts/1",
+      "expectedStatus": 200,
+      "headers": {
+        "Accept": "application/json"
+      },
+      "contractFile": "schemas/post-openapi.yaml"
+    },
+    {
+      "testId": "T-GET-POST-JSON-SCHEMA",
+      "method": "GET",
+      "path": "/posts/1",
+      "expectedStatus": 200,
+      "headers": {
+        "Accept": "application/json"
+      },
+      "contractFile": "schemas/post.schema.json"
+    }
+  ]
+}

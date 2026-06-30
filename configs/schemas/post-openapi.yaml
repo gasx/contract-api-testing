@@ -1,0 +1,37 @@
+openapi: 3.0.3
+
+info:
+  title: JSONPlaceholder Posts API
+  version: "1.0"
+
+paths:
+  /posts/{id}:
+    get:
+      summary: Получение одного поста
+      responses:
+        "200":
+          description: Пост успешно получен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+
+components:
+  schemas:
+    Post:
+      type: object
+      additionalProperties: false
+      required:
+        - userId
+        - id
+        - title
+        - body
+      properties:
+        userId:
+          type: integer
+        id:
+          type: integer
+        title:
+          type: string
+        body:
+          type: string
