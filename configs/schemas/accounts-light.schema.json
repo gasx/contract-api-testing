@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "accounts_light response example schema",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "account": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "currency": {
+      "type": "string"
+    },
+    "balance": {
+      "type": "number"
+    },
+    "availableBalance": {
+      "type": "number"
+    },
+    "items": {
+      "type": "array"
+    },
+    "data": {
+      "type": [
+        "object",
+        "array"
+      ]
+    },
+    "error": {
+      "type": [
+        "object",
+        "string",
+        "null"
+      ]
+    }
+  },
+  "anyOf": [
+    {
+      "required": [
+        "account"
+      ]
+    },
+    {
+      "required": [
+        "data"
+      ]
+    },
+    {
+      "required": [
+        "items"
+      ]
+    }
+  ]
+}

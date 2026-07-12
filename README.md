@@ -2,168 +2,144 @@
 
 Фреймворк для contract-oriented тестирования REST API с поддержкой подготовительных интеграций.
 
-Проект умеет:
-
-- запускать API-тесты по JSON-конфигу;
-- валидировать ответ по OpenAPI / JSON Schema;
-- отправлять multipart-запросы;
-- проверять скачивание файлов;
-- запускать подготовительные интеграции перед тестом;
-- использовать результат интеграций в `path`, `query`, `headers`, `body`, `multipart`, `contractFile`, `responseFile`;
-- отправлять сообщения в Kafka;
-- отправлять Kafka-сообщения в Avro;
-- читать Kafka-сообщения обратно;
-- декодировать Avro binary в JSON;
-- делать `extract`, `saveAs`, `assert`, `retry`;
-- показывать результат в Web UI.
+Проект позволяет описывать тесты в JSON: подготовить данные через интеграции, выполнить REST-запрос, проверить HTTP-статус, контракт ответа, файлы, Kafka-сообщения и результат подготовительных шагов.
 
 ---
 
-## 1. Быстрый запуск
+## Возможности
 
-### Компиляция
+- REST API тесты по JSON-конфигу
+- Проверка ответа по JSON Schema / OpenAPI контракту
+- Query, headers, body, path с шаблонами `${...}`
+- Multipart upload
+- Binary/file download
+- Локальная проверка ответа через `responseFile`
+- Подготовительные интеграции перед тестом
+- Автоматический запуск нужных интеграций
+- HTTP-интеграции
+- Mock-интеграции
+- Kafka send
+- Kafka consume
+- Avro encode/decode для Kafka
+- `extract` значений из результата интеграции
+- `saveAs` в глобальные переменные теста
+- `assert` результата интеграции
+- `retry` интеграций
+- Optional-интеграции через `failOnError: false`
+- Web UI отчёт
+
+---
+
+## Быстрый старт
+
+Компиляция:
 
 ```bash
 ./gradlew clean compileKotlin --console=plain
 ```
 
-### Запуск одного прогона
+Запуск тестового прогона:
 
 ```bash
-./gradlew run --args="--run configs/run_integrations_demo.json --out build/reports" --console=plain
+./gradlew run --args="--run configs/run.json --out build/reports" --console=plain
 ```
 
-### Запуск с Web UI
+Запуск с Web UI:
 
 ```bash
-./gradlew run --args="--run configs/run_global_vars_auto_demo.json --out build/reports --web" --console=plain
+./gradlew run --args="--run configs/run.json --out build/reports --web" --console=plain
 ```
 
-После запуска открой адрес, который приложение выведет в консоль.
-
-Обновление UI в браузере:
-
-```text
-Cmd + Shift + R
-```
+После запуска с `--web` открой адрес, который приложение выведет в консоль.
 
 ---
 
-## 2. Общая структура run config
-
-Минимальный конфиг:
+## Структура run config
 
 ```json
 {
-  "baseUrl": "https://httpbingo.org",
+  "baseUrl": "https://api.example.test",
   "timeoutMs": 15000,
   "integrations": {},
-  "tests": [
-    {
-      "testId": "T-GET-DEMO",
-      "method": "GET",
-      "path": "/get",
-      "expectedStatus": 200,
-      "headers": {
-        "Accept": "application/json"
-      },
-      "query": {
-        "alive": "true"
-      },
-      "contractFile": "schemas/httpbingo-get.schema.json"
-    }
-  ]
+  "tests": []
 }
 ```
 
-Поля верхнего уровня:
-
-| Поле | Назначение |
+| Поле | Описание |
 |---|---|
-| `baseUrl` | Базовый адрес API |
-| `timeoutMs` | Общий timeout HTTP-клиента |
-| `integrations` | Подготовительные интеграции |
-| `tests` | Список API-тестов |
+| `baseUrl` | Базовый URL основного API |
+| `timeoutMs` | Timeout HTTP-клиента |
+| `integrations` | Описание подготовительных интеграций |
+| `tests` | Список тестов |
 
 ---
 
-## 3. Структура теста
+## Структура теста
 
 ```json
 {
-  "testId": "T-EXAMPLE",
+  "testId": "T-CLIENT-GET",
   "beforeTest": [
-    "clientA"
+    "prepareClient"
   ],
-  "method": "POST",
-  "path": "/api/client/${clientA.vars.clientId}",
+  "method": "GET",
+  "path": "/clients/${vars.clientId}",
   "expectedStatus": 200,
   "headers": {
     "Accept": "application/json",
-    "Authorization": "Bearer ${auth.vars.token}"
+    "Authorization": "Bearer ${env.API_TOKEN}"
   },
   "query": {
-    "clientId": "${clientA.vars.clientId}"
+    "source": "autotest"
   },
-  "body": {
-    "clientId": "${clientA.vars.clientId}",
-    "amount": 1000
-  },
-  "contractFile": "schemas/client-response.schema.json"
+  "contractFile": "schemas/client.schema.json"
 }
 ```
 
-Поля теста:
-
-| Поле | Назначение |
+| Поле | Описание |
 |---|---|
 | `testId` | Уникальное имя теста |
-| `beforeTest` | Явный список интеграций, которые надо выполнить до теста |
+| `beforeTest` | Явный список интеграций перед тестом |
 | `method` | HTTP-метод |
 | `path` | Путь относительно `baseUrl` |
 | `expectedStatus` | Ожидаемый HTTP-статус |
-| `headers` | Заголовки запроса |
+| `headers` | Заголовки |
 | `query` | Query-параметры |
 | `body` | JSON body |
-| `contractFile` | Путь к OpenAPI / JSON Schema |
+| `contractFile` | Путь к контракту |
 | `multipart` | Multipart parts |
-| `downloadTo` | Куда сохранить скачанный файл |
-| `expectedContentType` | Ожидаемый Content-Type скачанного файла |
-| `responseFile` | Локальный файл ответа вместо реального HTTP-запроса |
+| `downloadTo` | Путь для сохранения файла |
+| `expectedContentType` | Ожидаемый Content-Type файла |
+| `responseFile` | Локальный ответ вместо реального HTTP-запроса |
 
 ---
 
-## 4. Шаблоны и переменные
+## Шаблоны и переменные
 
-Все ссылки на данные пишутся как строки:
+Шаблоны пишутся строками:
 
 ```json
 {
-  "clientId": "${clientA.vars.clientId}"
+  "clientId": "${vars.clientId}"
 }
 ```
 
-Можно использовать шаблоны в:
+Поддерживаются источники:
 
-- `path`;
-- `headers`;
-- `query`;
-- `body`;
-- `contractFile`;
-- `multipart.value`;
-- `multipart.filePath`;
-- `multipart.fileName`;
-- `multipart.contentType`;
-- `downloadTo`;
-- `expectedContentType`;
-- `responseFile`;
-- конфигурации других интеграций.
+| Синтаксис | Описание |
+|---|---|
+| `${env.NAME}` | Переменная окружения |
+| `${integration.response.path}` | Данные из response интеграции |
+| `${integration.vars.name}` | Данные из `extract` интеграции |
+| `${integration.status}` | HTTP/Kafka статус интеграции |
+| `${integration.headers.Name}` | Header из HTTP-интеграции |
+| `${vars.name}` | Глобальная переменная текущего теста |
 
-Если строка полностью состоит из одного шаблона, тип значения сохраняется:
+Если значение целиком состоит из одного шаблона, тип сохраняется:
 
 ```json
 {
-  "amount": "${clientA.vars.amount}"
+  "amount": "${vars.amount}"
 }
 ```
 
@@ -171,36 +147,42 @@ Cmd + Shift + R
 
 ```json
 {
-  "description": "client-${clientA.vars.clientId}"
+  "description": "client-${vars.clientId}"
 }
 ```
 
-Для `headers` и `query` итог всегда приводится к строке.
-
 ---
 
-## 5. Как запускаются интеграции
+## Как запускаются интеграции
 
-Интеграция выполняется один раз на один тест и кэшируется внутри теста.
+Интеграция выполняется один раз на один тест.
 
 Интеграция запускается, если:
 
-1. она указана в `beforeTest`;
-2. её имя используется в шаблоне;
-3. она нужна другой интеграции;
-4. она создаёт global var, которая используется как `${vars.name}`.
+- указана в `beforeTest`;
+- её имя используется в шаблоне, например `${prepareClient.vars.clientId}`;
+- она нужна другой интеграции;
+- она создаёт global var, которая используется как `${vars.clientId}`.
+
+Пример явного запуска:
+
+```json
+{
+  "beforeTest": [
+    "prepareClient"
+  ]
+}
+```
 
 Пример автоматического запуска по имени интеграции:
 
 ```json
 {
   "query": {
-    "clientId": "${clientA.vars.clientId}"
+    "clientId": "${prepareClient.vars.clientId}"
   }
 }
 ```
-
-Если есть интеграция `clientA`, она будет выполнена автоматически.
 
 Пример автоматического запуска по global vars:
 
@@ -212,7 +194,7 @@ Cmd + Shift + R
 }
 ```
 
-Если какая-то интеграция содержит:
+Для этого какая-то интеграция должна сохранять переменную:
 
 ```json
 {
@@ -222,254 +204,44 @@ Cmd + Shift + R
 }
 ```
 
-то она будет выполнена автоматически.
-
 ---
 
-## 6. Типы интеграций
+## Общие поля интеграций
 
-| Type | Назначение |
+Эти поля можно использовать в разных типах интеграций:
+
+| Поле | Описание |
 |---|---|
-| `mock` | Статическая тестовая интеграция |
-| `http` | HTTP-запрос к внешней системе |
-| `kafka` | Отправка сообщения в Kafka |
-| `kafka-consume` | Чтение сообщения из Kafka |
-
-Avro включается через Kafka-поле:
-
-```json
-{
-  "messageFormat": "avro"
-}
-```
-
----
-
-## 7. Mock-интеграция
-
-```json
-{
-  "integrations": {
-    "clientA": {
-      "type": "mock",
-      "data": {
-        "id": "CLIENT-A",
-        "type": "first",
-        "phone": "+79990000000"
-      },
-      "extract": {
-        "clientId": "response.id",
-        "clientType": "response.type",
-        "phone": "response.phone"
-      }
-    }
-  }
-}
-```
-
-Обращение:
-
-```json
-{
-  "query": {
-    "clientId": "${clientA.vars.clientId}",
-    "phone": "${clientA.vars.phone}"
-  }
-}
-```
-
----
-
-## 8. HTTP-интеграция
-
-```json
-{
-  "integrations": {
-    "authA": {
-      "type": "http",
-      "method": "POST",
-      "url": "https://httpbingo.org/post",
-      "headers": {
-        "Content-Type": "application/json"
-      },
-      "body": {
-        "clientId": "${clientA.vars.clientId}"
-      },
-      "expectedStatus": 200,
-      "extract": {
-        "authClientId": "response.json.clientId"
-      }
-    }
-  }
-}
-```
-
-Поля HTTP-интеграции:
-
-| Поле | Назначение |
-|---|---|
-| `type` | Всегда `http` |
-| `method` | HTTP-метод, по умолчанию `GET` |
-| `url` | Полный URL |
-| `headers` | Заголовки |
-| `query` | Query-параметры |
-| `body` | JSON body |
-| `auth` | Авторизация |
-| `expectedStatus` | Ожидаемый статус |
-| `failOnStatus` | Валить интеграцию при плохом статусе |
-| `failOnError` | Валить тест при ошибке интеграции |
+| `type` | Тип интеграции |
 | `extract` | Извлечь значения в `integration.vars` |
 | `saveAs` | Сохранить значения в `${vars.*}` |
 | `assert` | Проверить результат интеграции |
-| `retry` | Повторять при ошибке |
+| `retry` | Повторить интеграцию при ошибке |
+| `failOnError` | Валить тест при ошибке интеграции |
+| `delayMs` | Пауза после действия, где поддерживается |
 
 ---
 
-## 9. Авторизация в HTTP-интеграции
-
-Bearer token напрямую:
-
-```json
-{
-  "auth": {
-    "type": "bearer",
-    "token": "TOKEN_VALUE"
-  }
-}
-```
-
-Bearer token через переменную окружения:
-
-```json
-{
-  "auth": {
-    "type": "bearer",
-    "tokenEnv": "QA_UTILS_TOKEN"
-  }
-}
-```
-
-Перед запуском:
-
-```bash
-export QA_UTILS_TOKEN="your-token"
-```
-
-Basic auth напрямую:
-
-```json
-{
-  "auth": {
-    "type": "basic",
-    "username": "demo",
-    "password": "password"
-  }
-}
-```
-
-Basic auth через переменные окружения:
-
-```json
-{
-  "auth": {
-    "type": "basic",
-    "usernameEnv": "QA_USER",
-    "passwordEnv": "QA_PASSWORD"
-  }
-}
-```
-
-Перед запуском:
-
-```bash
-export QA_USER="demo"
-export QA_PASSWORD="password"
-```
-
-Авторизация через результат другой интеграции:
-
-```json
-{
-  "integrations": {
-    "authA": {
-      "type": "http",
-      "method": "POST",
-      "url": "https://qa-utils/auth",
-      "body": {
-        "clientId": "${clientA.vars.clientId}"
-      },
-      "extract": {
-        "token": "response.token"
-      },
-      "saveAs": {
-        "token": "vars.token"
-      }
-    }
-  },
-  "tests": [
-    {
-      "testId": "T-AUTH",
-      "method": "GET",
-      "path": "/profile",
-      "headers": {
-        "Authorization": "Bearer ${vars.token}"
-      },
-      "expectedStatus": 200,
-      "contractFile": "schemas/profile.schema.json"
-    }
-  ]
-}
-```
-
----
-
-## 10. Переменные окружения
-
-К переменной окружения можно обратиться так:
-
-```json
-{
-  "headers": {
-    "Authorization": "Bearer ${env.API_TOKEN}"
-  }
-}
-```
-
-Перед запуском:
-
-```bash
-export API_TOKEN="your-token"
-```
-
-Если переменная окружения не найдена, тест упадёт с понятной ошибкой.
-
----
-
-## 11. extract
+## extract
 
 `extract` сохраняет значения внутри конкретной интеграции.
 
 ```json
 {
-  "clientA": {
-    "type": "mock",
-    "data": {
-      "id": "CLIENT-A",
-      "type": "first"
-    },
-    "extract": {
-      "clientId": "response.id",
-      "clientType": "response.type"
-    }
+  "extract": {
+    "clientId": "response.client.id",
+    "phone": "response.client.phone",
+    "firstItemId": "response.items[0].id",
+    "statusCode": "status"
   }
 }
 ```
 
-Обращение:
+После этого можно обращаться так:
 
 ```json
 {
-  "clientId": "${clientA.vars.clientId}"
+  "clientId": "${prepareClient.vars.clientId}"
 }
 ```
 
@@ -477,60 +249,46 @@ export API_TOKEN="your-token"
 
 ```text
 response.id
-response.data.client.siebelId
+response.data.clientId
 response.items[0].id
+vars.clientId
 headers.Content-Type
 status
 type
-vars.clientId
 ```
 
 ---
 
-## 12. saveAs и global vars
+## saveAs
 
-`saveAs` сохраняет значения в общий контекст одного теста.
+`saveAs` сохраняет значения в общий контекст текущего теста.
 
 ```json
 {
-  "clientA": {
-    "type": "mock",
-    "data": {
-      "id": "CLIENT-A",
-      "type": "first"
-    },
-    "extract": {
-      "clientId": "response.id",
-      "clientType": "response.type"
-    },
-    "saveAs": {
-      "clientId": "vars.clientId",
-      "clientType": "vars.clientType"
-    }
+  "extract": {
+    "clientId": "response.client.id"
+  },
+  "saveAs": {
+    "clientId": "vars.clientId"
   }
 }
 ```
 
-Теперь можно писать:
+После этого можно использовать короткую запись:
 
 ```json
 {
-  "query": {
-    "clientId": "${vars.clientId}",
-    "clientType": "${vars.clientType}"
-  }
+  "clientId": "${vars.clientId}"
 }
 ```
 
-`vars` живут только внутри одного теста. Между разными тестами они не шарятся.
-
-Если две интеграции сохраняют одну и ту же переменную, запуск упадёт с ошибкой конфликта.
+`vars` живут только внутри одного теста. Между тестами они не шарятся.
 
 ---
 
-## 13. assert
+## assert
 
-`assert` проверяет результат интеграции до запуска основного API-теста.
+`assert` проверяет результат интеграции.
 
 Простое сравнение:
 
@@ -538,8 +296,7 @@ vars.clientId
 {
   "assert": {
     "status": 200,
-    "response.value.clientId": "${clientA.vars.clientId}",
-    "response.value.amount": 1000
+    "vars.clientId": "CLIENT-A"
   }
 }
 ```
@@ -549,23 +306,20 @@ vars.clientId
 ```json
 {
   "assert": {
-    "response.value.clientId": {
-      "eq": "${clientA.vars.clientId}",
-      "matches": "^CLIENT-",
-      "contains": "CLIENT"
+    "response.client.id": {
+      "matches": "^CLIENT-"
     },
-    "response.value.amount": {
+    "response.amount": {
       "gt": 0,
-      "gte": 1000,
-      "lte": 1000
+      "lte": 10000
     },
-    "response.value.eventType": {
+    "response.eventType": {
       "in": [
-        "CLIENT_AVRO_PREPARED",
-        "CLIENT_UPDATED"
+        "CREATED",
+        "UPDATED"
       ]
     },
-    "response.value.active": {
+    "response.active": {
       "type": "boolean",
       "eq": true
     }
@@ -573,27 +327,27 @@ vars.clientId
 }
 ```
 
-Поддерживаемые операторы:
+Операторы:
 
-| Оператор | Назначение |
+| Оператор | Описание |
 |---|---|
-| `eq` | равно |
-| `notEq` | не равно |
-| `exists` | поле существует / не существует |
-| `isNull` | поле равно `null` |
-| `notNull` | поле не равно `null` |
-| `gt` | больше |
-| `gte` | больше или равно |
-| `lt` | меньше |
-| `lte` | меньше или равно |
-| `in` | входит в массив |
-| `contains` | строка содержит подстроку / массив содержит элемент / object содержит ключ |
-| `matches` | regex |
-| `startsWith` | начинается с |
-| `endsWith` | заканчивается на |
-| `type` | тип значения |
+| `eq` | Равно |
+| `notEq` | Не равно |
+| `exists` | Существует / не существует |
+| `isNull` | Равно `null` |
+| `notNull` | Не равно `null` |
+| `gt` | Больше |
+| `gte` | Больше или равно |
+| `lt` | Меньше |
+| `lte` | Меньше или равно |
+| `in` | Входит в список |
+| `contains` | Содержит значение |
+| `matches` | Regex |
+| `startsWith` | Начинается с |
+| `endsWith` | Заканчивается на |
+| `type` | Тип значения |
 
-Типы для `type`:
+Типы:
 
 ```text
 null
@@ -608,9 +362,7 @@ string
 
 ---
 
-## 14. retry
-
-`retry` повторяет интеграцию при ошибке.
+## retry
 
 ```json
 {
@@ -621,24 +373,20 @@ string
 }
 ```
 
-Полный пример:
+Поведение:
 
-```json
-{
-  "optionalBrokenNotify": {
-    "type": "http",
-    "method": "GET",
-    "url": "https://httpbingo.org/status/500",
-    "retry": {
-      "attempts": 3,
-      "delayMs": 500
-    },
-    "failOnError": false
-  }
-}
+```text
+попытка 1
+ошибка
+пауза delayMs
+попытка 2
+ошибка
+пауза delayMs
+попытка 3
+итоговый результат
 ```
 
-В отчёте будет поле:
+В отчёте сохраняется:
 
 ```json
 {
@@ -648,9 +396,17 @@ string
 
 ---
 
-## 15. failOnError, failOnStatus, expectedStatus
+## failOnError
 
-`failOnError: false` позволяет не валить тест при ошибке интеграции.
+По умолчанию ошибка интеграции валит тест.
+
+```json
+{
+  "failOnError": true
+}
+```
+
+Чтобы сделать интеграцию optional:
 
 ```json
 {
@@ -658,86 +414,264 @@ string
 }
 ```
 
-`failOnStatus: false` для HTTP-интеграций не считает плохой HTTP-статус ошибкой.
+В этом случае ошибка будет видна в отчёте, но основной тест продолжит выполняться.
+
+---
+
+## HTTP integration
 
 ```json
 {
-  "type": "http",
-  "url": "https://httpbingo.org/status/500",
+  "loadClient": {
+    "type": "http",
+    "method": "GET",
+    "url": "https://api.example.test/client",
+    "query": {
+      "id": "${vars.clientId}"
+    },
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer ${env.API_TOKEN}"
+    },
+    "expectedStatus": 200,
+    "extract": {
+      "clientId": "response.id",
+      "clientName": "response.name"
+    }
+  }
+}
+```
+
+Поля:
+
+| Поле | Описание |
+|---|---|
+| `type` | `http` |
+| `method` | HTTP-метод |
+| `url` | Полный URL |
+| `headers` | Заголовки |
+| `query` | Query-параметры |
+| `body` | JSON body |
+| `auth` | Авторизация |
+| `expectedStatus` | Ожидаемый статус |
+| `failOnStatus` | Считать плохой статус ошибкой |
+| `extract` | Извлечение данных |
+| `saveAs` | Сохранение global vars |
+| `assert` | Проверки |
+| `retry` | Повторы |
+
+### expectedStatus
+
+```json
+{
+  "expectedStatus": 404
+}
+```
+
+Тогда `404` считается успешным статусом.
+
+### failOnStatus
+
+```json
+{
   "failOnStatus": false
 }
 ```
 
-`expectedStatus` задаёт ожидаемый статус.
+Тогда не-2xx статус не будет считаться ошибкой интеграции.
+
+---
+
+## Авторизация в HTTP integration
+
+### Bearer token
 
 ```json
 {
-  "type": "http",
-  "url": "https://httpbingo.org/status/404",
-  "expectedStatus": 404
+  "auth": {
+    "type": "bearer",
+    "tokenEnv": "API_TOKEN"
+  }
+}
+```
+
+Перед запуском:
+
+```bash
+export API_TOKEN="token-value"
+```
+
+### Basic auth
+
+```json
+{
+  "auth": {
+    "type": "basic",
+    "usernameEnv": "API_USER",
+    "passwordEnv": "API_PASSWORD"
+  }
+}
+```
+
+Перед запуском:
+
+```bash
+export API_USER="user"
+export API_PASSWORD="password"
+```
+
+Можно передать значения напрямую, но для CI/CD лучше использовать переменные окружения:
+
+```json
+{
+  "auth": {
+    "type": "basic",
+    "username": "user",
+    "password": "password"
+  }
 }
 ```
 
 ---
 
-## 16. Kafka send
-
-Kafka-интеграция отправляет сообщение в Kafka.
+## Mock integration
 
 ```json
 {
-  "sendClientEvent": {
+  "prepareClient": {
+    "type": "mock",
+    "data": {
+      "id": "CLIENT-A",
+      "type": "first",
+      "amount": 1000
+    },
+    "extract": {
+      "clientId": "response.id",
+      "clientType": "response.type",
+      "amount": "response.amount"
+    },
+    "saveAs": {
+      "clientId": "vars.clientId",
+      "amount": "vars.amount"
+    }
+  }
+}
+```
+
+Используется для локальных и демонстрационных тестов, а также для быстрой проверки цепочек.
+
+---
+
+## Kafka send integration
+
+```json
+{
+  "sendEvent": {
     "type": "kafka",
     "hosts": [
       "localhost:9092"
     ],
     "topic": "client-events",
-    "key": "${clientA.vars.clientId}",
+    "key": "${vars.clientId}",
     "headers": {
-      "eventType": "CLIENT_PREPARED"
+      "eventType": "CREATED"
     },
+    "messageFormat": "json",
     "message": {
-      "clientId": "${clientA.vars.clientId}",
-      "clientType": "${clientA.vars.clientType}",
-      "eventType": "CLIENT_PREPARED"
+      "clientId": "${vars.clientId}",
+      "amount": "${vars.amount}"
     },
-    "delayMs": 3000
+    "delayMs": 1000,
+    "extract": {
+      "topic": "response.topic",
+      "partition": "response.partition",
+      "offset": "response.offset"
+    },
+    "saveAs": {
+      "eventTopic": "vars.topic",
+      "eventPartition": "vars.partition",
+      "eventOffset": "vars.offset"
+    }
   }
 }
 ```
 
-Поля Kafka send:
+Поля:
 
-| Поле | Назначение |
+| Поле | Описание |
 |---|---|
-| `type` | Всегда `kafka` |
-| `hosts` | Kafka bootstrap servers |
+| `type` | `kafka` |
+| `hosts` | Bootstrap servers |
 | `topic` | Topic |
 | `key` | Message key |
 | `headers` | Kafka headers |
-| `message` | Тело сообщения |
 | `messageFormat` | `json`, `string`, `avro` |
-| `avroSchemaFile` | Schema для Avro |
+| `message` | Payload |
+| `avroSchemaFile` | Avro schema file |
 | `properties` | Kafka producer properties |
 | `delayMs` | Пауза после отправки |
-| `extract` | Извлечь metadata |
-| `assert` | Проверить metadata |
-| `retry` | Повторять при ошибке |
 
 ---
 
-## 17. Kafka properties и авторизация
+## Kafka consume integration
 
-Kafka client properties можно передать через `properties`.
+```json
+{
+  "readEvent": {
+    "type": "kafka-consume",
+    "hosts": [
+      "localhost:9092"
+    ],
+    "topic": "${vars.eventTopic}",
+    "partition": "${vars.eventPartition}",
+    "offset": "${vars.eventOffset}",
+    "key": "${vars.clientId}",
+    "headers": {
+      "eventType": "CREATED"
+    },
+    "messageFormat": "json",
+    "timeoutMs": 10000,
+    "extract": {
+      "clientId": "response.value.clientId",
+      "amount": "response.value.amount"
+    },
+    "assert": {
+      "response.value.clientId": {
+        "eq": "${vars.clientId}"
+      }
+    }
+  }
+}
+```
 
-Пример SASL_SSL:
+Поля:
+
+| Поле | Описание |
+|---|---|
+| `type` | `kafka-consume` |
+| `hosts` | Bootstrap servers |
+| `topic` | Topic |
+| `partition` | Partition |
+| `offset` | Offset |
+| `key` | Ожидаемый key |
+| `headers` | Ожидаемые headers |
+| `messageFormat` | `json`, `string`, `avro` |
+| `avroSchemaFile` | Avro schema file |
+| `timeoutMs` | Время ожидания сообщения |
+| `properties` | Kafka consumer properties |
+
+---
+
+## Kafka properties и авторизация
+
+Kafka properties передаются напрямую:
 
 ```json
 {
   "properties": {
     "security.protocol": "SASL_SSL",
     "sasl.mechanism": "PLAIN",
-    "sasl.jaas.config": "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"${env.KAFKA_USER}\" password=\"${env.KAFKA_PASSWORD}\";"
+    "sasl.jaas.config": "org.apache.kafka.common.security.plain.PlainLoginModule required username="${env.KAFKA_USER}" password="${env.KAFKA_PASSWORD}";"
   }
 }
 ```
@@ -749,7 +683,7 @@ export KAFKA_USER="user"
 export KAFKA_PASSWORD="password"
 ```
 
-Пример SSL truststore:
+SSL пример:
 
 ```json
 {
@@ -763,58 +697,27 @@ export KAFKA_PASSWORD="password"
 
 ---
 
-## 18. Kafka Avro send
+## Avro для Kafka
+
+Для Avro нужно указать:
 
 ```json
 {
-  "sendClientAvroEvent": {
-    "type": "kafka",
-    "hosts": [
-      "localhost:9092"
-    ],
-    "topic": "client-avro-events",
-    "key": "${clientA.vars.clientId}",
-    "headers": {
-      "eventType": "CLIENT_AVRO_PREPARED",
-      "format": "avro"
-    },
-    "messageFormat": "avro",
-    "avroSchemaFile": "schemas/client-event.avsc",
-    "message": {
-      "clientId": "${clientA.vars.clientId}",
-      "clientType": "${clientA.vars.clientType}",
-      "eventType": "CLIENT_AVRO_PREPARED",
-      "amount": 1000,
-      "active": true
-    },
-    "delayMs": 1000,
-    "extract": {
-      "topic": "response.topic",
-      "partition": "response.partition",
-      "offset": "response.offset"
-    }
-  }
+  "messageFormat": "avro",
+  "avroSchemaFile": "schemas/event.avsc"
 }
 ```
 
-Пример Avro schema:
+Пример schema:
 
 ```json
 {
   "type": "record",
   "name": "ClientEvent",
-  "namespace": "ru.course.apitesting.demo",
+  "namespace": "example.events",
   "fields": [
     {
       "name": "clientId",
-      "type": "string"
-    },
-    {
-      "name": "clientType",
-      "type": "string"
-    },
-    {
-      "name": "eventType",
       "type": "string"
     },
     {
@@ -829,64 +732,88 @@ export KAFKA_PASSWORD="password"
 }
 ```
 
----
-
-## 19. Kafka consume
+Пример message:
 
 ```json
 {
-  "readClientAvroEvent": {
-    "type": "kafka-consume",
-    "hosts": [
-      "localhost:9092"
-    ],
-    "topic": "${sendClientAvroEvent.vars.topic}",
-    "partition": "${sendClientAvroEvent.vars.partition}",
-    "offset": "${sendClientAvroEvent.vars.offset}",
-    "key": "${clientA.vars.clientId}",
-    "headers": {
-      "eventType": "CLIENT_AVRO_PREPARED",
-      "format": "avro"
-    },
-    "messageFormat": "avro",
-    "avroSchemaFile": "schemas/client-event.avsc",
-    "timeoutMs": 10000,
-    "extract": {
-      "clientId": "response.value.clientId",
-      "amount": "response.value.amount"
-    }
+  "message": {
+    "clientId": "${vars.clientId}",
+    "amount": "${vars.amount}",
+    "active": true
   }
 }
 ```
 
-Поля Kafka consume:
-
-| Поле | Назначение |
-|---|---|
-| `type` | Всегда `kafka-consume` |
-| `hosts` | Kafka bootstrap servers |
-| `topic` | Topic |
-| `partition` | Partition |
-| `offset` | Offset |
-| `key` | Ожидаемый message key |
-| `headers` | Ожидаемые Kafka headers |
-| `messageFormat` | `json`, `string`, `avro` |
-| `avroSchemaFile` | Schema для decode Avro |
-| `timeoutMs` | Сколько ждать сообщение |
-| `properties` | Kafka consumer properties |
-| `extract` | Извлечь значения |
-| `assert` | Проверить payload |
-| `retry` | Повторять при ошибке |
+Обычный Kafka console consumer может показывать Avro как binary-мусор. Это нормально. Для проверки Avro используй `kafka-consume` с тем же `avroSchemaFile`.
 
 ---
 
-## 20. Локальная Kafka через Docker
+## Multipart upload
 
-Создай файл:
-
-```text
-docker-compose.kafka.yml
+```json
+{
+  "testId": "T-UPLOAD",
+  "method": "POST",
+  "path": "/upload",
+  "expectedStatus": 200,
+  "multipart": [
+    {
+      "name": "meta",
+      "value": "{"clientId":"${vars.clientId}"}",
+      "contentType": "application/json"
+    },
+    {
+      "name": "file",
+      "filePath": "files/example.pdf",
+      "fileName": "example.pdf",
+      "contentType": "application/pdf"
+    }
+  ],
+  "contractFile": "schemas/upload-response.schema.json"
+}
 ```
+
+---
+
+## File download
+
+```json
+{
+  "testId": "T-DOWNLOAD",
+  "method": "GET",
+  "path": "/file",
+  "expectedStatus": 200,
+  "headers": {
+    "Accept": "application/pdf"
+  },
+  "downloadTo": "downloads/result.pdf",
+  "expectedContentType": "application/pdf",
+  "contractFile": "schemas/download-response.schema.json"
+}
+```
+
+---
+
+## responseFile
+
+`responseFile` позволяет проверить контракт на локальном файле без HTTP-запроса.
+
+```json
+{
+  "testId": "T-LOCAL-RESPONSE",
+  "method": "GET",
+  "path": "/demo",
+  "expectedStatus": 200,
+  "responseFile": "responses/demo-response.json",
+  "contractFile": "schemas/demo.schema.json"
+}
+```
+
+---
+
+## Локальная Kafka через Docker
+
+Файл `docker-compose.kafka.yml`:
 
 ```yaml
 services:
@@ -925,7 +852,7 @@ docker ps
 Создать topic:
 
 ```bash
-docker exec -it contract-api-testing-kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --if-not-exists --topic client-avro-events --partitions 1 --replication-factor 1
+docker exec -it contract-api-testing-kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --if-not-exists --topic client-events --partitions 1 --replication-factor 1
 ```
 
 Список topic:
@@ -934,147 +861,76 @@ docker exec -it contract-api-testing-kafka /opt/kafka/bin/kafka-topics.sh --boot
 docker exec -it contract-api-testing-kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
 ```
 
-Consumer для JSON/string:
-
-```bash
-docker exec -it contract-api-testing-kafka /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic client-events --from-beginning --property print.key=true --property key.separator=" | "
-```
-
-Для Avro обычный consumer покажет binary-мусор. Это нормально.
-
 ---
 
-## 21. Multipart-запрос
+## Отчёты
+
+После запуска создаётся:
+
+```text
+build/reports/report.json
+```
+
+В отчёте по тесту есть:
+
+- `testId`
+- `method`
+- `target`
+- `expectedStatus`
+- `actualStatus`
+- `passed`
+- `violations`
+- `durationMs`
+- `fileTransfers`
+- `integrations`
+
+Пример интеграции в отчёте:
 
 ```json
 {
-  "testId": "T-UPLOAD",
-  "method": "POST",
-  "path": "/upload",
-  "expectedStatus": 200,
-  "headers": {
-    "Accept": "application/json"
+  "name": "prepareClient",
+  "type": "mock",
+  "status": 200,
+  "durationMs": 2,
+  "attempts": 1,
+  "error": null,
+  "vars": {
+    "clientId": "CLIENT-A"
   },
-  "multipart": [
-    {
-      "name": "meta",
-      "value": "{\"clientId\":\"${vars.clientId}\"}",
-      "contentType": "application/json"
-    },
-    {
-      "name": "file",
-      "filePath": "files/example.pdf",
-      "fileName": "example.pdf",
-      "contentType": "application/pdf"
-    }
-  ],
-  "contractFile": "schemas/upload-response.schema.json"
+  "savedVars": {
+    "clientId": "CLIENT-A"
+  }
 }
 ```
 
 ---
 
-## 22. Скачивание файла
+## Web UI
 
-```json
-{
-  "testId": "T-DOWNLOAD",
-  "method": "GET",
-  "path": "/file",
-  "expectedStatus": 200,
-  "headers": {
-    "Accept": "application/pdf"
-  },
-  "downloadTo": "downloads/result.pdf",
-  "expectedContentType": "application/pdf",
-  "contractFile": "schemas/download-response.schema.json"
-}
+Запуск:
+
+```bash
+./gradlew run --args="--run configs/run.json --out build/reports --web" --console=plain
 ```
+
+В UI отображается:
+
+- общий статус;
+- список тестов;
+- HTTP-статус;
+- время выполнения;
+- ошибки;
+- файлы;
+- интеграции;
+- retry attempts;
+- `vars`;
+- `savedVars`.
 
 ---
 
-## 23. responseFile
+## Как добавить новый тип интеграции
 
-`responseFile` позволяет проверить контракт на заранее сохранённом ответе без реального HTTP-запроса.
-
-```json
-{
-  "testId": "T-LOCAL-RESPONSE",
-  "method": "GET",
-  "path": "/demo",
-  "expectedStatus": 200,
-  "responseFile": "responses/demo-response.json",
-  "contractFile": "schemas/demo.schema.json"
-}
-```
-
----
-
-## 24. Команды запуска demo-конфигов
-
-```bash
-./gradlew run --args="--run configs/run_integrations_demo.json --out build/reports" --console=plain
-```
-
-```bash
-./gradlew run --args="--run configs/run_integrations_chain_demo.json --out build/reports" --console=plain
-```
-
-```bash
-./gradlew run --args="--run configs/run_integrations_fail_demo.json --out build/reports" --console=plain
-```
-
-```bash
-./gradlew run --args="--run configs/run_integrations_optional_demo.json --out build/reports" --console=plain
-```
-
-```bash
-./gradlew run --args="--run configs/run_kafka_mock_demo.json --out build/reports" --console=plain
-```
-
-```bash
-./gradlew run --args="--run configs/run_kafka_avro_demo.json --out build/reports" --console=plain
-```
-
-```bash
-./gradlew run --args="--run configs/run_kafka_avro_consume_demo.json --out build/reports" --console=plain
-```
-
-```bash
-./gradlew run --args="--run configs/run_kafka_avro_assert_operators_demo.json --out build/reports" --console=plain
-```
-
-```bash
-./gradlew run --args="--run configs/run_global_vars_demo.json --out build/reports" --console=plain
-```
-
-```bash
-./gradlew run --args="--run configs/run_global_vars_auto_demo.json --out build/reports" --console=plain
-```
-
-```bash
-./gradlew run --args="--run configs/run_retry_demo.json --out build/reports" --console=plain
-```
-
-С Web UI:
-
-```bash
-./gradlew run --args="--run configs/run_global_vars_auto_demo.json --out build/reports --web" --console=plain
-```
-
----
-
-## 25. Как создать новую интеграцию
-
-Чтобы добавить новый тип интеграции:
-
-1. Создать класс executor.
-2. Реализовать `IntegrationExecutor`.
-3. Указать уникальный `type`.
-4. Вернуть `IntegrationResult`.
-5. Зарегистрировать executor в `Main.kt`.
-
-Пример:
+Создай executor:
 
 ```kotlin
 package ru.course.apitesting.integration.custom
@@ -1101,7 +957,7 @@ class CustomIntegrationExecutor : IntegrationExecutor {
 }
 ```
 
-Регистрация в `Main.kt`:
+Зарегистрируй executor в `Main.kt`:
 
 ```kotlin
 val integrationEngine = IntegrationEngine(
@@ -1116,12 +972,12 @@ val integrationEngine = IntegrationEngine(
 )
 ```
 
-Использование в JSON:
+Используй в JSON:
 
 ```json
 {
   "integrations": {
-    "myCustom": {
+    "customStep": {
       "type": "custom"
     }
   }
@@ -1130,7 +986,7 @@ val integrationEngine = IntegrationEngine(
 
 ---
 
-## 26. Структура пакетов integration
+## Рекомендуемая структура integration package
 
 ```text
 src/main/kotlin/ru/course/apitesting/integration/
@@ -1143,78 +999,34 @@ src/main/kotlin/ru/course/apitesting/integration/
 └── avro
 ```
 
-Назначение:
-
 | Папка | Назначение |
 |---|---|
-| `core` | Движок интеграций, контекст, результат, executor interface |
-| `template` | Шаблонизация `${...}` |
+| `core` | Движок интеграций |
+| `template` | Шаблоны `${...}` |
 | `assertions` | Проверки интеграций |
 | `mock` | Mock executor |
 | `http` | HTTP executor |
 | `kafka` | Kafka send/consume |
-| `avro` | JSON ↔ Avro conversion |
+| `avro` | JSON ↔ Avro |
 
 ---
 
-## 27. Report JSON
+## Частые ошибки
 
-После прогона создаётся файл:
+### Config file not found
 
 ```text
-build/reports/report.json
+No such file or directory
 ```
 
-Пример блока интеграций:
-
-```json
-{
-  "integrations": [
-    {
-      "name": "clientA",
-      "type": "mock",
-      "status": 200,
-      "durationMs": 1,
-      "attempts": 1,
-      "error": null,
-      "vars": {
-        "clientId": "CLIENT-A"
-      },
-      "savedVars": {
-        "clientId": "CLIENT-A"
-      }
-    }
-  ]
-}
-```
-
----
-
-## 28. Web UI
-
-Запуск с UI:
+Проверь, что команда запускается из корня проекта:
 
 ```bash
-./gradlew run --args="--run configs/run_global_vars_auto_demo.json --out build/reports --web" --console=plain
+pwd
+ls
 ```
 
-В UI видно:
-
-- общий статус прогона;
-- список тестов;
-- HTTP статус;
-- время выполнения;
-- ошибки контракта;
-- файлы;
-- интеграции;
-- retry attempts;
-- errors;
-- vars;
-- savedVars.
-
----
-
-## 29. Частые ошибки
+В корне должен быть `build.gradle.kts`.
 
 ### Docker daemon не запущен
 
@@ -1222,52 +1034,27 @@ build/reports/report.json
 Cannot connect to the Docker daemon
 ```
 
-Решение:
+Проверь Docker:
 
 ```bash
-docker context use desktop-linux
 docker info
 ```
 
-Потом:
+На Mac иногда нужно переключить context:
 
 ```bash
-docker compose -f docker-compose.kafka.yml up -d
+docker context use desktop-linux
 ```
 
-### Нет config-файла
+### Avro schema file не найден
 
-```text
-No such file or directory
-```
-
-Проверь:
+Проверь путь:
 
 ```bash
-pwd
-ls
-ls configs
+ls configs/schemas/event.avsc
 ```
 
-Запускать команды нужно из корня проекта, где лежит `build.gradle.kts`.
-
-### Нет Avro schema
-
-```text
-Avro schema file не найден
-```
-
-Проверь:
-
-```bash
-ls configs/schemas/client-event.avsc
-```
-
-### Не найдена переменная окружения
-
-```text
-Переменная окружения не найдена
-```
+### Переменная окружения не найдена
 
 Проверь:
 
@@ -1275,13 +1062,9 @@ ls configs/schemas/client-event.avsc
 echo $API_TOKEN
 ```
 
-### Не найдена global var
+### Global var не найдена
 
-```text
-Глобальная переменная не найдена: vars.clientId
-```
-
-Проверь, что есть интеграция с:
+Проверь, что переменная создаётся через `saveAs`:
 
 ```json
 {
@@ -1291,10 +1074,93 @@ echo $API_TOKEN
 }
 ```
 
-### Две интеграции сохраняют одну global var
+### Конфликт global vars
 
-```text
-Одна global var сохраняется несколькими интеграциями
+Если две интеграции сохраняют одну и ту же переменную, запуск упадёт. Нужно оставить одного producer для конкретной `vars.*`.
+
+---
+
+## Минимальный полный пример
+
+```json
+{
+  "baseUrl": "https://httpbingo.org",
+  "timeoutMs": 15000,
+  "integrations": {
+    "prepareClient": {
+      "type": "mock",
+      "data": {
+        "id": "CLIENT-A",
+        "amount": 1000
+      },
+      "extract": {
+        "clientId": "response.id",
+        "amount": "response.amount"
+      },
+      "saveAs": {
+        "clientId": "vars.clientId",
+        "amount": "vars.amount"
+      }
+    },
+    "sendEvent": {
+      "type": "kafka",
+      "hosts": [
+        "localhost:9092"
+      ],
+      "topic": "client-events",
+      "key": "${vars.clientId}",
+      "messageFormat": "json",
+      "message": {
+        "clientId": "${vars.clientId}",
+        "amount": "${vars.amount}"
+      },
+      "extract": {
+        "topic": "response.topic",
+        "partition": "response.partition",
+        "offset": "response.offset"
+      },
+      "saveAs": {
+        "eventTopic": "vars.topic",
+        "eventPartition": "vars.partition",
+        "eventOffset": "vars.offset"
+      }
+    },
+    "readEvent": {
+      "type": "kafka-consume",
+      "hosts": [
+        "localhost:9092"
+      ],
+      "topic": "${vars.eventTopic}",
+      "partition": "${vars.eventPartition}",
+      "offset": "${vars.eventOffset}",
+      "key": "${vars.clientId}",
+      "messageFormat": "json",
+      "timeoutMs": 10000,
+      "assert": {
+        "response.value.clientId": {
+          "eq": "${vars.clientId}"
+        },
+        "response.value.amount": {
+          "eq": 1000
+        }
+      }
+    }
+  },
+  "tests": [
+    {
+      "testId": "T-FULL-FLOW",
+      "method": "GET",
+      "path": "/get",
+      "expectedStatus": 200,
+      "query": {
+        "clientId": "${vars.clientId}",
+        "amount": "${vars.amount}"
+      },
+      "headers": {
+        "Accept": "application/json"
+      },
+      "contractFile": "schemas/httpbingo-get.schema.json"
+    }
+  ]
+}
 ```
-
-Нужно оставить только одного producer для конкретной переменной.
