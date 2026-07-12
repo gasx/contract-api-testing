@@ -14,6 +14,7 @@ import ru.course.apitesting.integration.http.HttpIntegrationExecutor
 import ru.course.apitesting.integration.kafka.KafkaConsumeIntegrationExecutor
 import ru.course.apitesting.integration.kafka.KafkaIntegrationExecutor
 import ru.course.apitesting.integration.mock.MockIntegrationExecutor
+import ru.course.apitesting.integration.kitqat.KitqatIntegrationExecutor
 import java.io.File
 
 fun main(rawArgs: Array<String>) {
@@ -40,7 +41,8 @@ fun main(rawArgs: Array<String>) {
                 MockIntegrationExecutor(),
                 HttpIntegrationExecutor(httpClient),
                 KafkaIntegrationExecutor(runFileDir),
-                KafkaConsumeIntegrationExecutor(runFileDir)
+                KafkaConsumeIntegrationExecutor(runFileDir),
+                KitqatIntegrationExecutor(httpClient)
             )
         )
         val runner = TestRunner(loader, executor, validator, runFileDir, integrationEngine)
