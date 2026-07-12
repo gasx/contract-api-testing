@@ -21,6 +21,15 @@ data class FileTransferInfo(
 )
 
 @Serializable
+data class IntegrationRunInfo(
+    val name: String,
+    val type: String,
+    val status: Int? = null,
+    val durationMs: Long = 0,
+    val error: String? = null
+)
+
+@Serializable
 data class TestResult(
     val testId: String,
     val contractId: String,
@@ -31,5 +40,6 @@ data class TestResult(
     val passed: Boolean,
     val violations: List<Violation>,
     val durationMs: Long = 0,
-    val fileTransfers: List<FileTransferInfo> = emptyList()
+    val fileTransfers: List<FileTransferInfo> = emptyList(),
+    val integrations: List<IntegrationRunInfo> = emptyList()
 )

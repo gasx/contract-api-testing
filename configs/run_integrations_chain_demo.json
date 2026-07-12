@@ -1,0 +1,58 @@
+{
+  "baseUrl": "https://httpbingo.org",
+  "timeoutMs": 15000,
+  "integrations": {
+    "setupOnly": {
+      "type": "mock",
+      "data": {
+        "prepared": true
+      }
+    },
+    "clientA": {
+      "type": "mock",
+      "data": {
+        "id": "CLIENT-A",
+        "type": "first"
+      }
+    },
+    "clientB": {
+      "type": "mock",
+      "data": {
+        "id": "CLIENT-B",
+        "type": "second"
+      }
+    },
+    "authA": {
+      "type": "http",
+      "method": "POST",
+      "url": "https://httpbingo.org/post",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "clientId": "${clientA.response.id}",
+        "clientType": "${clientA.response.type}"
+      }
+    }
+  },
+  "tests": [
+    {
+      "testId": "T-INTEGRATIONS-CHAIN",
+      "beforeTest": [
+        "setupOnly"
+      ],
+      "method": "GET",
+      "path": "/get",
+      "expectedStatus": 200,
+      "query": {
+        "clientA": "${clientA.response.id}",
+        "clientB": "${clientB.response.id}",
+        "authClient": "${authA.response.json.clientId}"
+      },
+      "headers": {
+        "Accept": "application/json"
+      },
+      "contractFile": "schemas/httpbingo-get.schema.json"
+    }
+  ]
+}

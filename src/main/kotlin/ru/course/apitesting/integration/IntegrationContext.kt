@@ -1,5 +1,6 @@
 package ru.course.apitesting.integration
 
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -17,6 +18,10 @@ class IntegrationContext {
 
     fun get(name: String): IntegrationResult? {
         return results[name]
+    }
+
+    fun all(): List<IntegrationResult> {
+        return results.values.toList()
     }
 
     fun resolve(expression: String): JsonElement {
@@ -75,7 +80,7 @@ class IntegrationContext {
         }
 
         indexes.forEach { index ->
-            val array = current as? kotlinx.serialization.json.JsonArray ?: return null
+            val array = current as? JsonArray ?: return null
             current = array.getOrNull(index) ?: return null
         }
 

@@ -18,7 +18,7 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
 class HttpIntegrationExecutor(
@@ -39,13 +39,17 @@ class HttpIntegrationExecutor(
         return runBlocking {
             val url = config["url"]
                 ?.jsonPrimitive
-                ?.content
+                ?.contentOrNull
                 ?: error("У HTTP-интеграции $name не указан url")
 
             val methodName = config["method"]
                 ?.jsonPrimitive
                 ?.contentOrNull
                 ?: "GET"
+
+            val expectedStatus = config["expectedStatus"]
+                ?.jsonPrimitive
+                ?.intOrNull
 
             val headers = readStringMap(config["headers"] as? JsonObject)
             val query = readStringMap(config["query"] as? JsonObject)
@@ -79,12 +83,28 @@ class HttpIntegrationExecutor(
                     entry.key to entry.value.joinToString(",")
                 }
 
+            val status = response.status.value
+            val statusOk = if (expectedStatus != null) {
+                status == expectedStatus
+            } else {
+                status in 200..299
+            }
+
+            val error = if (statusOk) {
+                null
+            } else if (expectedStatus != null) {
+                "HTTP integration expected status $expectedStatus but got $status"
+            } else {
+                "HTTP integration expected 2xx status but got $status"
+            }
+
             IntegrationResult(
                 name = name,
                 type = type,
-                status = response.status.value,
+                status = status,
                 headers = responseHeaders,
-                response = responseJson
+                response = responseJson,
+                error = error
             )
         }
     }

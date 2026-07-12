@@ -1,0 +1,48 @@
+{
+  "baseUrl": "https://httpbingo.org",
+  "timeoutMs": 15000,
+  "integrations": {
+    "clientA": {
+      "type": "mock",
+      "data": {
+        "id": "CLIENT-A",
+        "type": "first"
+      }
+    },
+    "sendClientEvent": {
+      "type": "kafka",
+      "hosts": [
+        "localhost:9092"
+      ],
+      "topic": "client-events",
+      "key": "${clientA.response.id}",
+      "headers": {
+        "eventType": "CLIENT_PREPARED"
+      },
+      "message": {
+        "clientId": "${clientA.response.id}",
+        "clientType": "${clientA.response.type}",
+        "eventType": "CLIENT_PREPARED"
+      },
+      "delayMs": 3000
+    }
+  },
+  "tests": [
+    {
+      "testId": "T-KAFKA-MOCK-DEMO",
+      "beforeTest": [
+        "sendClientEvent"
+      ],
+      "method": "GET",
+      "path": "/get",
+      "expectedStatus": 200,
+      "query": {
+        "clientId": "${clientA.response.id}"
+      },
+      "headers": {
+        "Accept": "application/json"
+      },
+      "contractFile": "schemas/httpbingo-get.schema.json"
+    }
+  ]
+}
