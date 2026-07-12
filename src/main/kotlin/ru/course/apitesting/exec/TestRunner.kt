@@ -9,12 +9,14 @@ import ru.course.apitesting.schema.ExternalContractLoader
 import ru.course.apitesting.validate.ContractValidator
 import java.io.File
 import kotlin.system.measureTimeMillis
+import ru.course.apitesting.integration.IntegrationEngine
 
 class TestRunner(
     private val loader: ConfigLoader,
     private val executor: HttpExecutor,
     private val validator: ContractValidator,
-    private val baseDir: File
+    private val baseDir: File,
+    private val integrationEngine: IntegrationEngine
 ) {
     private val contractLoader = ExternalContractLoader(loader)
 
@@ -23,30 +25,32 @@ class TestRunner(
             var result: TestResult
 
             val durationMs = measureTimeMillis {
-                val contractPath = resolve(tc.contractFile)
+                val renderedTestCase = integrationEngine.prepareTest(tc)
 
-                val contract = contractLoader.load(
-                    path = contractPath,
-                    testCase = tc
-                )
-
-                val preparedTestCase = tc.copy(
-                    multipart = tc.multipart.map { part ->
+                val preparedTestCase = renderedTestCase.copy(
+                    multipart = renderedTestCase.multipart.map { part ->
                         part.copy(
                             filePath = part.filePath?.let { resolve(it) }
                         )
                     },
-                    downloadTo = tc.downloadTo?.let { resolve(it) }
+                    downloadTo = renderedTestCase.downloadTo?.let { resolve(it) }
+                )
+
+                val contractPath = resolve(preparedTestCase.contractFile)
+
+                val contract = contractLoader.load(
+                    path = contractPath,
+                    testCase = preparedTestCase
                 )
 
                 val httpResult: HttpResult =
-                    if (!tc.responseFile.isNullOrBlank()) {
-                        val responsePath = resolve(tc.responseFile!!)
+                    if (!preparedTestCase.responseFile.isNullOrBlank()) {
+                        val responsePath = resolve(preparedTestCase.responseFile!!)
                         val body = loader.readTextFile(responsePath)
 
                         HttpResult(
                             ok = true,
-                            status = tc.expectedStatus,
+                            status = preparedTestCase.expectedStatus,
                             bodyText = body
                         )
                     } else {

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HTTPBingo get response",
+  "type": "object",
+  "required": [
+    "args",
+    "headers",
+    "method",
+    "url"
+  ],
+  "properties": {
+    "args": {
+      "type": "object"
+    },
+    "headers": {
+      "type": "object"
+    },
+    "method": {
+      "type": "string"
+    },
+    "url": {
+      "type": "string"
+    }
+  }
+}
