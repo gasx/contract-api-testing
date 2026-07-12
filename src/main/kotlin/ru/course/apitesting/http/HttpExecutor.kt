@@ -14,6 +14,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import ru.course.apitesting.config.ApiTestCase
 import ru.course.apitesting.report.FileTransferInfo
+import io.ktor.client.request.parameter
 import java.io.File
 
 class HttpExecutor(
@@ -26,6 +27,10 @@ class HttpExecutor(
 
             val response: HttpResponse = client.request(url) {
                 method = HttpMethod.parse(tc.method.uppercase())
+
+                tc.query.forEach { (key, value) ->
+                    parameter(key, value)
+                }
 
                 tc.headers.forEach { (key, value) ->
                     if (

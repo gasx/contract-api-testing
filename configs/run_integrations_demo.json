@@ -1,0 +1,34 @@
+{
+  "baseUrl": "https://httpbingo.org",
+  "timeoutMs": 15000,
+  "integrations": {
+    "mockUser": {
+      "type": "mock",
+      "data": {
+        "id": 1,
+        "name": "Test User"
+      }
+    },
+    "requestInfo": {
+      "type": "http",
+      "method": "GET",
+      "url": "https://httpbingo.org/uuid"
+    }
+  },
+  "tests": [
+    {
+      "testId": "T-INTEGRATIONS-MOCK-HTTP",
+      "method": "GET",
+      "path": "/get",
+      "expectedStatus": 200,
+      "query": {
+        "userId": "${mockUser.response.id}",
+        "requestId": "${requestInfo.response.uuid}"
+      },
+      "headers": {
+        "Accept": "application/json"
+      },
+      "contractFile": "schemas/httpbingo-get.schema.json"
+    }
+  ]
+}

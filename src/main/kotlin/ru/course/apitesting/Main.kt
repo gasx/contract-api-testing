@@ -9,6 +9,9 @@ import ru.course.apitesting.http.HttpExecutor
 import ru.course.apitesting.report.JUnitXmlWriter
 import ru.course.apitesting.report.ReportWriter
 import ru.course.apitesting.validate.ContractValidator
+import ru.course.apitesting.integration.HttpIntegrationExecutor
+import ru.course.apitesting.integration.IntegrationEngine
+import ru.course.apitesting.integration.MockIntegrationExecutor
 import kotlin.concurrent.thread
 import java.io.File
 
@@ -30,7 +33,14 @@ fun main(rawArgs: Array<String>) {
         val httpClient = HttpClientFactory.create(runConfig.timeoutMs)
         val executor = HttpExecutor(httpClient, runConfig.baseUrl)
         val validator = ContractValidator()
-        val runner = TestRunner(loader, executor, validator, runFileDir)
+        val integrationEngine = IntegrationEngine(
+            integrations = runConfig.integrations,
+            executors = listOf(
+                MockIntegrationExecutor(),
+                HttpIntegrationExecutor(httpClient)
+            )
+        )
+        val runner = TestRunner(loader, executor, validator, runFileDir, integrationEngine)
 
         val results = runner.runAll(runConfig.tests)
 
