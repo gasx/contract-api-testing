@@ -8,5 +8,7 @@ data class IntegrationResult(
     val type: String,
     val status: Int? = null,
     val headers: Map<String, String> = emptyMap(),
-    val response: JsonElement = JsonObject(emptyMap())
+    val response: JsonElement = JsonObject(emptyMap()),
+    val durationMs: Long = 0,
+    val error: String? = null
 )

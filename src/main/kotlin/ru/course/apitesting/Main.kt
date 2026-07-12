@@ -12,6 +12,7 @@ import ru.course.apitesting.validate.ContractValidator
 import ru.course.apitesting.integration.HttpIntegrationExecutor
 import ru.course.apitesting.integration.IntegrationEngine
 import ru.course.apitesting.integration.MockIntegrationExecutor
+import ru.course.apitesting.integration.KafkaIntegrationExecutor
 import kotlin.concurrent.thread
 import java.io.File
 
@@ -37,7 +38,8 @@ fun main(rawArgs: Array<String>) {
             integrations = runConfig.integrations,
             executors = listOf(
                 MockIntegrationExecutor(),
-                HttpIntegrationExecutor(httpClient)
+                HttpIntegrationExecutor(httpClient),
+                KafkaIntegrationExecutor()
             )
         )
         val runner = TestRunner(loader, executor, validator, runFileDir, integrationEngine)

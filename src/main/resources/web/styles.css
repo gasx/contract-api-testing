@@ -301,3 +301,47 @@ tbody tr:hover {
         grid-template-columns: 1fr;
     }
 }
+
+.integration-run {
+    min-width: 150px;
+    margin-bottom: 6px;
+    padding: 7px 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #0b1220;
+}
+
+.integration-name {
+    color: var(--blue);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.integration-type {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: rgba(56, 189, 248, 0.12);
+    color: var(--blue);
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.integration-status-ok {
+    color: var(--green);
+    font-weight: 800;
+}
+
+.integration-status-bad {
+    color: var(--red);
+    font-weight: 800;
+}
+
+.integration-error {
+    margin-top: 4px;
+    color: #fecaca;
+    font-size: 11px;
+    line-height: 1.3;
+}

@@ -1,6 +1,9 @@
 package ru.course.apitesting.integration
 
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonPrimitive
 
 class MockIntegrationExecutor : IntegrationExecutor {
     override val type: String = "mock"
@@ -13,8 +16,9 @@ class MockIntegrationExecutor : IntegrationExecutor {
         return IntegrationResult(
             name = name,
             type = type,
-            status = 200,
-            response = config["data"] ?: JsonObject(emptyMap())
+            status = config["status"]?.jsonPrimitive?.intOrNull ?: 200,
+            response = config["data"] ?: JsonObject(emptyMap()),
+            error = config["error"]?.jsonPrimitive?.contentOrNull
         )
     }
 }

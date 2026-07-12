@@ -25,6 +25,7 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.17.2")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.17.2")
     implementation("org.apache.commons:commons-text:1.12.0")
+    implementation("org.apache.kafka:kafka-clients:4.3.1")
 
     // чтобы не было предупреждений SLF4J NOP
     runtimeOnly("org.slf4j:slf4j-simple:2.0.13")

@@ -58,6 +58,10 @@ function classify(code) {
         return 'Другая ошибка';
     }
 
+    if (code.includes('INTEGRATION')) {
+        return 'Ошибка интеграции';
+    }
+
     if (code.includes('STATUS')) {
         return 'Ошибка HTTP-статуса';
     }
@@ -90,6 +94,10 @@ function classify(code) {
 }
 
 function formatViolation(violation) {
+    if (violation.code === 'INTEGRATION_ERROR') {
+        return 'Ошибка при выполнении интеграции перед тестом';
+    }
+
     if (violation.code === 'STATUS_MISMATCH') {
         return 'HTTP-статус ответа не совпадает с ожидаемым';
     }
@@ -161,6 +169,47 @@ function renderFileTransfers(test) {
             '</span>' +
             preview +
             openLink +
+            '</div>'
+        );
+    }).join('');
+}
+
+function renderIntegrations(test) {
+    const integrations = Array.isArray(test.integrations)
+        ? test.integrations
+        : [];
+
+    if (integrations.length === 0) {
+        return '<span class="small">интеграции не использовались</span>';
+    }
+
+    return integrations.map(item => {
+        const hasError = item.error !== null && item.error !== undefined && item.error !== '';
+        const status = item.status === null || item.status === undefined
+            ? '-'
+            : item.status;
+
+        const statusClass = !hasError && Number(status) >= 200 && Number(status) < 300
+            ? 'integration-status-ok'
+            : 'integration-status-bad';
+
+        const errorBlock = hasError
+            ? '<div class="integration-error">' + safeHtml(item.error) + '</div>'
+            : '';
+
+        return (
+            '<div class="integration-run">' +
+            '<div>' +
+            '<span class="integration-name">' + safeHtml(item.name) + '</span>' +
+            ' <span class="integration-type">' + safeHtml(item.type) + '</span>' +
+            '</div>' +
+            '<div class="small">' +
+            'status: <span class="' + statusClass + '">' + safeHtml(status) + '</span>' +
+            ' · ' +
+            safeHtml(item.durationMs || 0) +
+            ' мс' +
+            '</div>' +
+            errorBlock +
             '</div>'
         );
     }).join('');
@@ -269,6 +318,18 @@ function renderTable() {
             })
             .join(' ');
 
+        const integrationText = (result.integrations || [])
+            .map(item => {
+                return [
+                    item.name,
+                    item.type,
+                    item.status,
+                    item.durationMs,
+                    item.error
+                ].join(' ');
+            })
+            .join(' ');
+
         const text = [
             result.testId,
             result.method,
@@ -276,6 +337,7 @@ function renderTable() {
             result.expectedStatus,
             result.actualStatus,
             fileText,
+            integrationText,
             ...result.violations.map(violationText)
         ].join(' ').toLowerCase();
 
@@ -309,6 +371,7 @@ function renderTable() {
             '<td><b>' + safeHtml(result.testId) + '</b><br>' +
             '<span class="small">' + safeHtml(result.contractId) + '</span></td>' +
             '<td>' + renderFileTransfers(result) + '</td>' +
+            '<td>' + renderIntegrations(result) + '</td>' +
             '<td><span class="method">' + safeHtml(result.method) + '</span> ' +
             safeHtml(result.target) + '</td>' +
             '<td>ожидалось: <b>' + safeHtml(result.expectedStatus) + '</b><br>' +
@@ -330,6 +393,27 @@ function renderTable() {
                     );
                 }).join('\n');
 
+            const integrations = Array.isArray(result.integrations) && result.integrations.length > 0
+                ? result.integrations.map(item => {
+                    const error = item.error
+                        ? ' | error: ' + safe(item.error)
+                        : '';
+
+                    return (
+                        '- ' +
+                        safe(item.name) +
+                        ' | type: ' +
+                        safe(item.type) +
+                        ' | status: ' +
+                        safe(item.status) +
+                        ' | ' +
+                        safe(item.durationMs) +
+                        ' мс' +
+                        error
+                    );
+                }).join('\n')
+                : 'Интеграции не использовались';
+
             alert(
                 'Тест: ' + safe(result.testId) + '\n' +
                 'Метод: ' + safe(result.method) + '\n' +
@@ -337,6 +421,9 @@ function renderTable() {
                 'Ожидался HTTP-статус: ' + safe(result.expectedStatus) + '\n' +
                 'Получен HTTP-статус: ' + safe(result.actualStatus) + '\n' +
                 'Время выполнения: ' + safe(result.durationMs) + ' мс\n\n' +
+                'Интеграции:\n' +
+                integrations +
+                '\n\n' +
                 'Нарушения:\n' +
                 violations
             );
@@ -419,7 +506,7 @@ load().catch(error => {
         'status-pill status-fail';
 
     document.getElementById('testRows').innerHTML =
-        '<tr><td colspan="7"><div class="error">' +
+        '<tr><td colspan="8"><div class="error">' +
         escapeHtml(error.message) +
         '</div></td></tr>';
 });
