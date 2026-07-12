@@ -1,4 +1,4 @@
-package ru.course.apitesting.integration
+package ru.course.apitesting.integration.core
 
 class IntegrationFailedException(
     val integrationName: String,

@@ -2,6 +2,7 @@ package ru.course.apitesting.report
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import kotlinx.serialization.json.JsonObject
 
 @Serializable
 data class Violation(
@@ -26,7 +27,10 @@ data class IntegrationRunInfo(
     val type: String,
     val status: Int? = null,
     val durationMs: Long = 0,
-    val error: String? = null
+    val attempts: Int = 1,
+    val error: String? = null,
+    val vars: JsonObject = JsonObject(emptyMap()),
+    val savedVars: JsonObject = JsonObject(emptyMap())
 )
 
 @Serializable

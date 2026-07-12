@@ -1,0 +1,113 @@
+{
+  "baseUrl": "https://httpbingo.org",
+  "timeoutMs": 15000,
+  "integrations": {
+    "clientA": {
+      "type": "mock",
+      "data": {
+        "id": "CLIENT-A",
+        "type": "first"
+      },
+      "extract": {
+        "clientId": "response.id",
+        "clientType": "response.type"
+      },
+      "saveAs": {
+        "clientId": "vars.clientId",
+        "clientType": "vars.clientType"
+      }
+    },
+    "sendClientAvroEvent": {
+      "type": "kafka",
+      "hosts": [
+        "localhost:9092"
+      ],
+      "topic": "client-avro-events",
+      "key": "${vars.clientId}",
+      "headers": {
+        "eventType": "CLIENT_AVRO_PREPARED",
+        "format": "avro"
+      },
+      "messageFormat": "avro",
+      "avroSchemaFile": "schemas/client-event.avsc",
+      "message": {
+        "clientId": "${vars.clientId}",
+        "clientType": "${vars.clientType}",
+        "eventType": "CLIENT_AVRO_PREPARED",
+        "amount": 1000,
+        "active": true
+      },
+      "extract": {
+        "topic": "response.topic",
+        "partition": "response.partition",
+        "offset": "response.offset"
+      },
+      "saveAs": {
+        "kafkaTopic": "vars.topic",
+        "kafkaPartition": "vars.partition",
+        "kafkaOffset": "vars.offset"
+      },
+      "delayMs": 1000
+    },
+    "readClientAvroEvent": {
+      "type": "kafka-consume",
+      "hosts": [
+        "localhost:9092"
+      ],
+      "topic": "${vars.kafkaTopic}",
+      "partition": "${vars.kafkaPartition}",
+      "offset": "${vars.kafkaOffset}",
+      "key": "${vars.clientId}",
+      "headers": {
+        "eventType": "CLIENT_AVRO_PREPARED",
+        "format": "avro"
+      },
+      "messageFormat": "avro",
+      "avroSchemaFile": "schemas/client-event.avsc",
+      "timeoutMs": 10000,
+      "extract": {
+        "eventType": "response.value.eventType",
+        "amount": "response.value.amount",
+        "active": "response.value.active"
+      },
+      "saveAs": {
+        "eventType": "vars.eventType",
+        "amount": "vars.amount",
+        "active": "vars.active"
+      },
+      "assert": {
+        "response.value.clientId": {
+          "eq": "${vars.clientId}"
+        },
+        "response.value.clientType": {
+          "eq": "${vars.clientType}"
+        },
+        "response.value.amount": {
+          "eq": 1000
+        },
+        "response.value.active": {
+          "eq": true
+        }
+      }
+    }
+  },
+  "tests": [
+    {
+      "testId": "T-GLOBAL-VARS-AUTO-DEMO",
+      "method": "GET",
+      "path": "/get",
+      "expectedStatus": 200,
+      "query": {
+        "clientId": "${vars.clientId}",
+        "clientType": "${vars.clientType}",
+        "eventType": "${vars.eventType}",
+        "amount": "${vars.amount}",
+        "active": "${vars.active}"
+      },
+      "headers": {
+        "Accept": "application/json"
+      },
+      "contractFile": "schemas/httpbingo-get.schema.json"
+    }
+  ]
+}

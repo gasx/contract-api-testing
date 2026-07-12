@@ -1,0 +1,66 @@
+{
+  "baseUrl": "https://httpbingo.org",
+  "timeoutMs": 15000,
+  "integrations": {
+    "clientA": {
+      "type": "mock",
+      "data": {
+        "id": "CLIENT-A",
+        "type": "first"
+      },
+      "extract": {
+        "clientId": "response.id",
+        "clientType": "response.type"
+      }
+    },
+    "sendClientAvroEvent": {
+      "type": "kafka",
+      "hosts": [
+        "localhost:9092"
+      ],
+      "topic": "client-avro-events",
+      "key": "${clientA.vars.clientId}",
+      "headers": {
+        "eventType": "CLIENT_AVRO_PREPARED",
+        "format": "avro"
+      },
+      "messageFormat": "avro",
+      "avroSchemaFile": "schemas/client-event.avsc",
+      "message": {
+        "clientId": "${clientA.vars.clientId}",
+        "clientType": "${clientA.vars.clientType}",
+        "eventType": "CLIENT_AVRO_PREPARED",
+        "amount": 1000,
+        "active": true
+      },
+      "extract": {
+        "topic": "response.topic",
+        "partition": "response.partition",
+        "offset": "response.offset",
+        "messageFormat": "response.messageFormat"
+      },
+      "delayMs": 3000
+    }
+  },
+  "tests": [
+    {
+      "testId": "T-KAFKA-AVRO-DEMO",
+      "beforeTest": [
+        "sendClientAvroEvent"
+      ],
+      "method": "GET",
+      "path": "/get",
+      "expectedStatus": 200,
+      "query": {
+        "clientId": "${clientA.vars.clientId}",
+        "kafkaTopic": "${sendClientAvroEvent.vars.topic}",
+        "kafkaOffset": "${sendClientAvroEvent.vars.offset}",
+        "messageFormat": "${sendClientAvroEvent.vars.messageFormat}"
+      },
+      "headers": {
+        "Accept": "application/json"
+      },
+      "contractFile": "schemas/httpbingo-get.schema.json"
+    }
+  ]
+}

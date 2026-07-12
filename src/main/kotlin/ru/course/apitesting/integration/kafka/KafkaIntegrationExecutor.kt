@@ -1,4 +1,9 @@
-package ru.course.apitesting.integration
+package ru.course.apitesting.integration.kafka
+
+import ru.course.apitesting.integration.avro.AvroJsonConverter
+import ru.course.apitesting.integration.core.IntegrationContext
+import ru.course.apitesting.integration.core.IntegrationExecutor
+import ru.course.apitesting.integration.core.IntegrationResult
 
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -9,13 +14,22 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
+import org.apache.avro.Schema
+import org.apache.avro.generic.GenericDatumWriter
+import org.apache.avro.generic.GenericRecord
+import org.apache.avro.io.EncoderFactory
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.common.serialization.ByteArraySerializer
 import org.apache.kafka.common.serialization.StringSerializer
+import java.io.ByteArrayOutputStream
+import java.io.File
 import java.util.Properties
 
-class KafkaIntegrationExecutor : IntegrationExecutor {
+class KafkaIntegrationExecutor(
+    private val baseDir: File
+) : IntegrationExecutor {
     override val type: String = "kafka"
 
     override fun execute(
@@ -36,7 +50,18 @@ class KafkaIntegrationExecutor : IntegrationExecutor {
         val message = config["message"]
             ?: error("У Kafka-интеграции $name не указан message")
 
-        val value = jsonToString(message)
+        val messageFormat = config["messageFormat"]
+            ?.jsonPrimitive
+            ?.contentOrNull
+            ?: "json"
+
+        val value = when (messageFormat.lowercase()) {
+            "json" -> jsonToString(message).toByteArray(Charsets.UTF_8)
+            "string" -> jsonToString(message).toByteArray(Charsets.UTF_8)
+            "avro" -> encodeAvro(name, config, message)
+            else -> error("Kafka-интеграция $name имеет неизвестный messageFormat=$messageFormat")
+        }
+
         val headers = readStringMap(config["headers"] as? JsonObject)
         val customProperties = readStringMap(config["properties"] as? JsonObject)
         val delayMs = config["delayMs"]
@@ -48,17 +73,15 @@ class KafkaIntegrationExecutor : IntegrationExecutor {
 
         properties[ProducerConfig.BOOTSTRAP_SERVERS_CONFIG] = hosts.joinToString(",")
         properties[ProducerConfig.ACKS_CONFIG] = "all"
-        properties[ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG] = StringSerializer::class.java.name
-        properties[ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG] = StringSerializer::class.java.name
 
         customProperties.forEach { (key, value) ->
             properties[key] = value
         }
 
         properties[ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG] = StringSerializer::class.java.name
-        properties[ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG] = StringSerializer::class.java.name
+        properties[ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG] = ByteArraySerializer::class.java.name
 
-        KafkaProducer<String, String>(properties).use { producer ->
+        KafkaProducer<String, ByteArray>(properties).use { producer ->
             val record = ProducerRecord(
                 topic,
                 key,
@@ -91,9 +114,50 @@ class KafkaIntegrationExecutor : IntegrationExecutor {
                     put("timestamp", metadata.timestamp())
                     put("serializedKeySize", metadata.serializedKeySize())
                     put("serializedValueSize", metadata.serializedValueSize())
+                    put("messageFormat", messageFormat)
                     put("delayMs", delayMs)
                 }
             )
+        }
+    }
+
+    private fun encodeAvro(
+        name: String,
+        config: JsonObject,
+        message: JsonElement
+    ): ByteArray {
+        val schemaPath = config["avroSchemaFile"]
+            ?.jsonPrimitive
+            ?.contentOrNull
+            ?: error("У Kafka Avro-интеграции $name не указан avroSchemaFile")
+
+        val schemaFile = resolve(schemaPath)
+
+        if (!schemaFile.exists()) {
+            error("Avro schema file не найден: ${schemaFile.path}")
+        }
+
+        val schema = Schema.Parser().parse(schemaFile)
+        val value = AvroJsonConverter.convert(message, schema) as? GenericRecord
+            ?: error("Avro message для $name должен быть RECORD")
+
+        val output = ByteArrayOutputStream()
+        val writer = GenericDatumWriter<GenericRecord>(schema)
+        val encoder = EncoderFactory.get().binaryEncoder(output, null)
+
+        writer.write(value, encoder)
+        encoder.flush()
+
+        return output.toByteArray()
+    }
+
+    private fun resolve(path: String): File {
+        val file = File(path)
+
+        return if (file.isAbsolute) {
+            file
+        } else {
+            File(baseDir, path)
         }
     }
 

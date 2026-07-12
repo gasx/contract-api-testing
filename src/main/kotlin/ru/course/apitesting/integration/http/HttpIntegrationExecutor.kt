@@ -1,4 +1,8 @@
-package ru.course.apitesting.integration
+package ru.course.apitesting.integration.http
+
+import ru.course.apitesting.integration.core.IntegrationContext
+import ru.course.apitesting.integration.core.IntegrationExecutor
+import ru.course.apitesting.integration.core.IntegrationResult
 
 import io.ktor.client.HttpClient
 import io.ktor.client.request.basicAuth
@@ -17,6 +21,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
@@ -51,6 +56,12 @@ class HttpIntegrationExecutor(
                 ?.jsonPrimitive
                 ?.intOrNull
 
+            val failOnStatus = readBoolean(
+                config = config,
+                field = "failOnStatus",
+                defaultValue = true
+            )
+
             val headers = readStringMap(config["headers"] as? JsonObject)
             val query = readStringMap(config["query"] as? JsonObject)
             val body = config["body"]
@@ -72,10 +83,12 @@ class HttpIntegrationExecutor(
                     if (headers.keys.none { it.equals(HttpHeaders.ContentType, ignoreCase = true) }) {
                         contentType(ContentType.Application.Json)
                     }
+
                     setBody(body.toString())
                 }
             }
 
+            val status = response.status.value
             val responseText = response.bodyAsText()
             val responseJson = parseResponse(responseText)
             val responseHeaders = response.headers.entries()
@@ -83,19 +96,17 @@ class HttpIntegrationExecutor(
                     entry.key to entry.value.joinToString(",")
                 }
 
-            val status = response.status.value
             val statusOk = if (expectedStatus != null) {
                 status == expectedStatus
             } else {
                 status in 200..299
             }
 
-            val error = if (statusOk) {
-                null
-            } else if (expectedStatus != null) {
-                "HTTP integration expected status $expectedStatus but got $status"
-            } else {
-                "HTTP integration expected 2xx status but got $status"
+            val error = when {
+                statusOk -> null
+                !failOnStatus -> null
+                expectedStatus != null -> "HTTP integration expected status $expectedStatus but got $status"
+                else -> "HTTP integration expected 2xx status but got $status"
             }
 
             IntegrationResult(
@@ -164,6 +175,24 @@ class HttpIntegrationExecutor(
 
         return obj.mapValues { (_, value) ->
             jsonToString(value)
+        }
+    }
+
+    private fun readBoolean(
+        config: JsonObject,
+        field: String,
+        defaultValue: Boolean
+    ): Boolean {
+        val primitive = config[field]?.jsonPrimitive ?: return defaultValue
+
+        primitive.booleanOrNull?.let {
+            return it
+        }
+
+        return when (primitive.contentOrNull?.lowercase()) {
+            "true" -> true
+            "false" -> false
+            else -> defaultValue
         }
     }
 
