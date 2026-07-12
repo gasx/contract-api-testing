@@ -1,0 +1,54 @@
+{
+  "baseUrl": "https://httpbingo.org",
+  "timeoutMs": 15000,
+  "integrations": {
+    "clientA": {
+      "type": "mock",
+      "data": {
+        "id": "CLIENT-A",
+        "type": "first",
+        "phone": "+79990000000"
+      },
+      "extract": {
+        "clientId": "response.id",
+        "clientType": "response.type",
+        "phone": "response.phone"
+      }
+    },
+    "authA": {
+      "type": "http",
+      "method": "POST",
+      "url": "https://httpbingo.org/post",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "clientId": "${clientA.vars.clientId}",
+        "clientType": "${clientA.vars.clientType}",
+        "phone": "${clientA.vars.phone}"
+      },
+      "extract": {
+        "authClientId": "response.json.clientId",
+        "authClientType": "response.json.clientType",
+        "authPhone": "response.json.phone"
+      }
+    }
+  },
+  "tests": [
+    {
+      "testId": "T-INTEGRATIONS-EXTRACT",
+      "method": "GET",
+      "path": "/get",
+      "expectedStatus": 200,
+      "query": {
+        "clientId": "${clientA.vars.clientId}",
+        "clientType": "${authA.vars.authClientType}",
+        "phone": "${authA.vars.authPhone}"
+      },
+      "headers": {
+        "Accept": "application/json"
+      },
+      "contractFile": "schemas/httpbingo-get.schema.json"
+    }
+  ]
+}

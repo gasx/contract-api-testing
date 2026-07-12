@@ -189,30 +189,89 @@ function renderIntegrations(test) {
             ? '-'
             : item.status;
 
-        const statusClass = !hasError && Number(status) >= 200 && Number(status) < 300
+        const attempts = item.attempts || 1;
+
+        const statusClass = !hasError
             ? 'integration-status-ok'
             : 'integration-status-bad';
+
+        const retryBadge = attempts > 1
+            ? '<span class="integration-retry">retry x' + safeHtml(attempts) + '</span>'
+            : '';
 
         const errorBlock = hasError
             ? '<div class="integration-error">' + safeHtml(item.error) + '</div>'
             : '';
 
+        const varsBlock = renderIntegrationObject('vars', item.vars);
+        const savedVarsBlock = renderIntegrationObject('saved', item.savedVars);
+
         return (
-            '<div class="integration-run">' +
-            '<div>' +
+            '<div class="integration-run ' + (hasError ? 'integration-run-error' : '') + '">' +
+            '<div class="integration-head">' +
             '<span class="integration-name">' + safeHtml(item.name) + '</span>' +
             ' <span class="integration-type">' + safeHtml(item.type) + '</span>' +
+            retryBadge +
             '</div>' +
             '<div class="small">' +
             'status: <span class="' + statusClass + '">' + safeHtml(status) + '</span>' +
             ' · ' +
             safeHtml(item.durationMs || 0) +
             ' мс' +
+            ' · attempts: ' +
+            safeHtml(attempts) +
             '</div>' +
             errorBlock +
+            varsBlock +
+            savedVarsBlock +
             '</div>'
         );
     }).join('');
+}
+
+function renderIntegrationObject(title, value) {
+    if (!value || typeof value !== 'object') {
+        return '';
+    }
+
+    const keys = Object.keys(value);
+
+    if (keys.length === 0) {
+        return '';
+    }
+
+    const rows = keys.slice(0, 5).map(key => {
+        return (
+            '<div class="integration-var-row">' +
+            '<span class="integration-var-key">' + safeHtml(key) + '</span>' +
+            '<span class="integration-var-value">' + safeHtml(formatIntegrationValue(value[key])) + '</span>' +
+            '</div>'
+        );
+    }).join('');
+
+    const more = keys.length > 5
+        ? '<div class="integration-var-more">+' + safeHtml(keys.length - 5) + ' ещё</div>'
+        : '';
+
+    return (
+        '<details class="integration-vars">' +
+        '<summary>' + safeHtml(title) + '</summary>' +
+        rows +
+        more +
+        '</details>'
+    );
+}
+
+function formatIntegrationValue(value) {
+    if (value === null || value === undefined) {
+        return '-';
+    }
+
+    if (typeof value === 'object') {
+        return JSON.stringify(value);
+    }
+
+    return String(value);
 }
 
 function renderCharts(passed, failed) {
@@ -325,7 +384,10 @@ function renderTable() {
                     item.type,
                     item.status,
                     item.durationMs,
-                    item.error
+                    item.attempts,
+                    item.error,
+                    JSON.stringify(item.vars || {}),
+                    JSON.stringify(item.savedVars || {})
                 ].join(' ');
             })
             .join(' ');
@@ -399,6 +461,14 @@ function renderTable() {
                         ? ' | error: ' + safe(item.error)
                         : '';
 
+                    const vars = item.vars && Object.keys(item.vars).length > 0
+                        ? '\n  vars: ' + JSON.stringify(item.vars)
+                        : '';
+
+                    const savedVars = item.savedVars && Object.keys(item.savedVars).length > 0
+                        ? '\n  savedVars: ' + JSON.stringify(item.savedVars)
+                        : '';
+
                     return (
                         '- ' +
                         safe(item.name) +
@@ -409,7 +479,11 @@ function renderTable() {
                         ' | ' +
                         safe(item.durationMs) +
                         ' мс' +
-                        error
+                        ' | attempts: ' +
+                        safe(item.attempts || 1) +
+                        error +
+                        vars +
+                        savedVars
                     );
                 }).join('\n')
                 : 'Интеграции не использовались';

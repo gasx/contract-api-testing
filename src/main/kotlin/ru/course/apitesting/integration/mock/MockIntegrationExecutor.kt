@@ -1,4 +1,8 @@
-package ru.course.apitesting.integration
+package ru.course.apitesting.integration.mock
+
+import ru.course.apitesting.integration.core.IntegrationContext
+import ru.course.apitesting.integration.core.IntegrationExecutor
+import ru.course.apitesting.integration.core.IntegrationResult
 
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull

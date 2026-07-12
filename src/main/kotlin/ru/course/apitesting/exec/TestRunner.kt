@@ -4,9 +4,9 @@ import ru.course.apitesting.config.ApiTestCase
 import ru.course.apitesting.config.ConfigLoader
 import ru.course.apitesting.http.HttpExecutor
 import ru.course.apitesting.http.HttpResult
-import ru.course.apitesting.integration.IntegrationEngine
-import ru.course.apitesting.integration.IntegrationFailedException
-import ru.course.apitesting.integration.IntegrationResult
+import ru.course.apitesting.integration.core.IntegrationEngine
+import ru.course.apitesting.integration.core.IntegrationFailedException
+import ru.course.apitesting.integration.core.IntegrationResult
 import ru.course.apitesting.report.IntegrationRunInfo
 import ru.course.apitesting.report.TestResult
 import ru.course.apitesting.report.Violation
@@ -14,6 +14,7 @@ import ru.course.apitesting.schema.ExternalContractLoader
 import ru.course.apitesting.validate.ContractValidator
 import java.io.File
 import kotlin.system.measureTimeMillis
+import kotlinx.serialization.json.JsonObject
 
 class TestRunner(
     private val loader: ConfigLoader,
@@ -137,7 +138,10 @@ class TestRunner(
                 type = it.type,
                 status = it.status,
                 durationMs = it.durationMs,
-                error = it.error
+                attempts = it.attempts,
+                error = it.error,
+                vars = JsonObject(it.vars),
+                savedVars = JsonObject(it.savedVars)
             )
         }
     }

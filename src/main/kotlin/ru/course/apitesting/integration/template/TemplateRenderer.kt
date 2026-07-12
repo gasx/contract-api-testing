@@ -1,4 +1,4 @@
-package ru.course.apitesting.integration
+package ru.course.apitesting.integration.template
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -12,6 +12,8 @@ import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.longOrNull
 import org.apache.commons.text.StringSubstitutor
+import org.apache.commons.text.lookup.StringLookup
+import ru.course.apitesting.integration.core.IntegrationContext
 
 class TemplateRenderer(
     private val integrationNames: Set<String>
@@ -21,46 +23,39 @@ class TemplateRenderer(
 
     fun findIntegrationNames(element: JsonElement): Set<String> {
         val result = linkedSetOf<String>()
-        scan(element, result)
+        scanIntegrationNames(element, result)
+        return result
+    }
+
+    fun findGlobalVarNames(element: JsonElement): Set<String> {
+        val result = linkedSetOf<String>()
+        scanGlobalVarNames(element, result)
         return result
     }
 
     fun render(element: JsonElement, context: IntegrationContext): JsonElement {
         return when (element) {
-            is JsonObject -> {
-                JsonObject(
-                    element.mapValues { (_, value) ->
-                        render(value, context)
-                    }
-                )
-            }
-
-            is JsonArray -> {
-                JsonArray(
-                    element.map {
-                        render(it, context)
-                    }
-                )
-            }
-
+            is JsonObject -> JsonObject(element.mapValues { (_, value) -> render(value, context) })
+            is JsonArray -> JsonArray(element.map { render(it, context) })
             is JsonPrimitive -> {
                 if (element.isString) {
-                    renderStringElement(element.content, context)
+                    renderStringElement(element.contentOrNull ?: element.toString().trim('"'), context)
                 } else {
                     element
                 }
             }
-
             JsonNull -> JsonNull
         }
     }
 
     fun renderString(value: String, context: IntegrationContext): String {
-        val substitutor = StringSubstitutor { key ->
+        val lookup = StringLookup { key ->
             jsonToString(context.resolve(key))
         }
 
+        val substitutor = StringSubstitutor(lookup)
         substitutor.setEnableUndefinedVariableException(true)
+
         return substitutor.replace(value)
     }
 
@@ -74,31 +69,52 @@ class TemplateRenderer(
         return JsonPrimitive(renderString(value, context))
     }
 
-    private fun scan(element: JsonElement, result: MutableSet<String>) {
+    private fun scanIntegrationNames(
+        element: JsonElement,
+        result: MutableSet<String>
+    ) {
         when (element) {
-            is JsonObject -> {
-                element.values.forEach {
-                    scan(it, result)
-                }
-            }
-
-            is JsonArray -> {
-                element.forEach {
-                    scan(it, result)
-                }
-            }
-
+            is JsonObject -> element.values.forEach { scanIntegrationNames(it, result) }
+            is JsonArray -> element.forEach { scanIntegrationNames(it, result) }
             is JsonPrimitive -> {
                 if (element.isString) {
-                    placeholderRegex.findAll(element.content).forEach { match ->
+                    placeholderRegex.findAll(element.contentOrNull ?: element.toString().trim('"')).forEach { match ->
                         val rootName = match.groupValues[1].substringBefore(".")
+
                         if (rootName in integrationNames) {
                             result += rootName
                         }
                     }
                 }
             }
+            JsonNull -> Unit
+        }
+    }
 
+    private fun scanGlobalVarNames(
+        element: JsonElement,
+        result: MutableSet<String>
+    ) {
+        when (element) {
+            is JsonObject -> element.values.forEach { scanGlobalVarNames(it, result) }
+            is JsonArray -> element.forEach { scanGlobalVarNames(it, result) }
+            is JsonPrimitive -> {
+                if (element.isString) {
+                    placeholderRegex.findAll(element.contentOrNull ?: element.toString().trim('"')).forEach { match ->
+                        val expression = match.groupValues[1]
+
+                        if (expression.startsWith("vars.")) {
+                            val varName = expression
+                                .removePrefix("vars.")
+                                .substringBefore(".")
+
+                            if (varName.isNotBlank()) {
+                                result += varName
+                            }
+                        }
+                    }
+                }
+            }
             JsonNull -> Unit
         }
     }
@@ -113,7 +129,6 @@ class TemplateRenderer(
                     ?: element.doubleOrNull?.toString()
                     ?: element.toString()
             }
-
             else -> Json.encodeToString(JsonElement.serializer(), element)
         }
     }

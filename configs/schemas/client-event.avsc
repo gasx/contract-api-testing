@@ -1,0 +1,27 @@
+{
+  "type": "record",
+  "name": "ClientEvent",
+  "namespace": "ru.course.apitesting.demo",
+  "fields": [
+    {
+      "name": "clientId",
+      "type": "string"
+    },
+    {
+      "name": "clientType",
+      "type": "string"
+    },
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "amount",
+      "type": "long"
+    },
+    {
+      "name": "active",
+      "type": "boolean"
+    }
+  ]
+}

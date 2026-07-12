@@ -9,11 +9,11 @@ import ru.course.apitesting.http.HttpExecutor
 import ru.course.apitesting.report.JUnitXmlWriter
 import ru.course.apitesting.report.ReportWriter
 import ru.course.apitesting.validate.ContractValidator
-import ru.course.apitesting.integration.HttpIntegrationExecutor
-import ru.course.apitesting.integration.IntegrationEngine
-import ru.course.apitesting.integration.MockIntegrationExecutor
-import ru.course.apitesting.integration.KafkaIntegrationExecutor
-import kotlin.concurrent.thread
+import ru.course.apitesting.integration.core.IntegrationEngine
+import ru.course.apitesting.integration.http.HttpIntegrationExecutor
+import ru.course.apitesting.integration.kafka.KafkaConsumeIntegrationExecutor
+import ru.course.apitesting.integration.kafka.KafkaIntegrationExecutor
+import ru.course.apitesting.integration.mock.MockIntegrationExecutor
 import java.io.File
 
 fun main(rawArgs: Array<String>) {
@@ -39,7 +39,8 @@ fun main(rawArgs: Array<String>) {
             executors = listOf(
                 MockIntegrationExecutor(),
                 HttpIntegrationExecutor(httpClient),
-                KafkaIntegrationExecutor()
+                KafkaIntegrationExecutor(runFileDir),
+                KafkaConsumeIntegrationExecutor(runFileDir)
             )
         )
         val runner = TestRunner(loader, executor, validator, runFileDir, integrationEngine)

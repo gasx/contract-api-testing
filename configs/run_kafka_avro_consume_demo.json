@@ -1,0 +1,88 @@
+{
+  "baseUrl": "https://httpbingo.org",
+  "timeoutMs": 15000,
+  "integrations": {
+    "clientA": {
+      "type": "mock",
+      "data": {
+        "id": "CLIENT-A",
+        "type": "first"
+      },
+      "extract": {
+        "clientId": "response.id",
+        "clientType": "response.type"
+      }
+    },
+    "sendClientAvroEvent": {
+      "type": "kafka",
+      "hosts": [
+        "localhost:9092"
+      ],
+      "topic": "client-avro-events",
+      "key": "${clientA.vars.clientId}",
+      "headers": {
+        "eventType": "CLIENT_AVRO_PREPARED",
+        "format": "avro"
+      },
+      "messageFormat": "avro",
+      "avroSchemaFile": "schemas/client-event.avsc",
+      "message": {
+        "clientId": "${clientA.vars.clientId}",
+        "clientType": "${clientA.vars.clientType}",
+        "eventType": "CLIENT_AVRO_PREPARED",
+        "amount": 1000,
+        "active": true
+      },
+      "extract": {
+        "topic": "response.topic",
+        "partition": "response.partition",
+        "offset": "response.offset",
+        "messageFormat": "response.messageFormat"
+      },
+      "delayMs": 1000
+    },
+    "readClientAvroEvent": {
+      "type": "kafka-consume",
+      "hosts": [
+        "localhost:9092"
+      ],
+      "topic": "${sendClientAvroEvent.vars.topic}",
+      "partition": "${sendClientAvroEvent.vars.partition}",
+      "offset": "${sendClientAvroEvent.vars.offset}",
+      "key": "${clientA.vars.clientId}",
+      "headers": {
+        "eventType": "CLIENT_AVRO_PREPARED",
+        "format": "avro"
+      },
+      "messageFormat": "avro",
+      "avroSchemaFile": "schemas/client-event.avsc",
+      "timeoutMs": 10000,
+      "extract": {
+        "clientId": "response.value.clientId",
+        "clientType": "response.value.clientType",
+        "eventType": "response.value.eventType",
+        "amount": "response.value.amount",
+        "active": "response.value.active"
+      }
+    }
+  },
+  "tests": [
+    {
+      "testId": "T-KAFKA-AVRO-CONSUME-DEMO",
+      "method": "GET",
+      "path": "/get",
+      "expectedStatus": 200,
+      "query": {
+        "clientId": "${readClientAvroEvent.vars.clientId}",
+        "clientType": "${readClientAvroEvent.vars.clientType}",
+        "eventType": "${readClientAvroEvent.vars.eventType}",
+        "amount": "${readClientAvroEvent.vars.amount}",
+        "active": "${readClientAvroEvent.vars.active}"
+      },
+      "headers": {
+        "Accept": "application/json"
+      },
+      "contractFile": "schemas/httpbingo-get.schema.json"
+    }
+  ]
+}
