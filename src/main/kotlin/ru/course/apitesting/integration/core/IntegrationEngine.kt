@@ -69,6 +69,9 @@ class IntegrationEngine(
             },
             responseFile = testCase.responseFile?.let {
                 renderer.renderString(it, context)
+            },
+            assert = testCase.assert?.let {
+                renderer.render(it, context) as JsonObject
             }
         )
 
