@@ -26,7 +26,8 @@ data class ApiTestCase(
     val multipart: List<MultipartPart> = emptyList(),
     val downloadTo: String? = null,
     val expectedContentType: String? = null,
-    val responseFile: String? = null
+    val responseFile: String? = null,
+    val assert: JsonObject? = null
 )
 
 @Serializable

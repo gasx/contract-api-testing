@@ -15,6 +15,7 @@ import ru.course.apitesting.report.TestResult
 import ru.course.apitesting.report.Violation
 import ru.course.apitesting.schema.ExternalContractLoader
 import ru.course.apitesting.validate.ContractValidator
+import ru.course.apitesting.validate.ResponseAssertions
 import java.io.File
 import kotlin.system.measureTimeMillis
 
@@ -95,34 +96,48 @@ class TestRunner(
             null
         }
 
-        val result = validator.validate(
+        val baseResult = validator.validate(
             tc = preparedTestCase,
             contract = contract,
             http = httpResult
-        ).copy(
+        )
+
+        val assertionViolations = ResponseAssertions.validate(
+            response = responseBody,
+            status = httpResult.status,
+            assertConfig = preparedTestCase.assert
+        )
+
+        val result = baseResult.copy(
+            passed = baseResult.passed && assertionViolations.isEmpty(),
+            violations = baseResult.violations + assertionViolations,
             integrations = prepared.integrations.toRunInfo(),
+            responseContentType = httpResult.contentType,
             responseBody = responseBody,
             responseText = responseText
         )
 
-        printOperationResponse(
+        printMainResponse(
             testId = preparedTestCase.testId,
             status = httpResult.status,
+            contentType = httpResult.contentType,
             bodyText = bodyText
         )
 
         return result
     }
 
-    private fun printOperationResponse(
+    private fun printMainResponse(
         testId: String,
         status: Int?,
+        contentType: String?,
         bodyText: String
     ) {
         println()
         println("============================================================")
-        println("ОТВЕТ ОПЕРАЦИИ: $testId")
+        println("ОТВЕТ ПРОВЕРЯЕМОЙ РУЧКИ: $testId")
         println("HTTP status: ${status ?: "-"}")
+        println("Content-Type: ${contentType ?: "-"}")
         println("============================================================")
 
         val parsed = parseJsonOrNull(bodyText)

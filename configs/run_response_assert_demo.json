@@ -1,0 +1,52 @@
+{
+  "baseUrl": "https://httpbingo.org",
+  "timeoutMs": 15000,
+  "integrations": {
+    "publicUuid": {
+      "type": "http",
+      "method": "GET",
+      "url": "https://httpbingo.org/uuid",
+      "expectedStatus": 200,
+      "extract": {
+        "uuid": "response.uuid"
+      }
+    }
+  },
+  "tests": [
+    {
+      "testId": "T-RESPONSE-ASSERT-DEMO",
+      "method": "GET",
+      "path": "/get",
+      "expectedStatus": 200,
+      "headers": {
+        "Accept": "application/json",
+        "X-Request-Id": "${publicUuid.vars.uuid}"
+      },
+      "query": {
+        "requestId": "${publicUuid.vars.uuid}",
+        "source": "response-assert-demo"
+      },
+      "contractFile": "schemas/httpbingo-get.schema.json",
+      "assert": {
+        "status": {
+          "eq": 200
+        },
+        "response.method": {
+          "eq": "GET"
+        },
+        "response.args.source[0]": {
+          "eq": "response-assert-demo"
+        },
+        "response.args.requestId[0]": {
+          "eq": "${publicUuid.vars.uuid}"
+        },
+        "response.url": {
+          "contains": "response-assert-demo"
+        },
+        "response.headers.X-Request-Id[0]": {
+          "eq": "${publicUuid.vars.uuid}"
+        }
+      }
+    }
+  ]
+}
