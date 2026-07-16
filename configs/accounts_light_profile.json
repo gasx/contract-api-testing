@@ -1,0 +1,38 @@
+{
+  "baseUrl": "${profile.baseUrl}",
+  "timeoutMs": "${profile.timeoutMs}",
+  "integrations": {
+    "kitqatClient": {
+      "type": "kitqat",
+      "baseUrl": "${profile.kitqatBaseUrl}",
+      "tokenEnv": "${profile.kitqatTokenEnv}",
+      "pool": "BLACK_TFPLCU_3_0",
+      "count": 1,
+      "deleteFromPool": false
+    },
+    "qaUtilsAuth": {
+      "type": "qautils-auth",
+      "baseUrl": "${profile.qautilsBaseUrl}",
+      "siebelId": "${kitqatClient.vars.siebelId}"
+    }
+  },
+  "tests": [
+    {
+      "testId": "T-ACCOUNTS-LIGHT",
+      "method": "GET",
+      "path": "/accounts_light",
+      "expectedStatus": 200,
+      "headers": {
+        "Accept": "application/json",
+        "Authorization": "Bearer ${qaUtilsAuth.vars.token}"
+      },
+      "query": {
+        "appVersion": "7.3",
+        "platform": "mobile",
+        "appName": "android",
+        "account": "${kitqatClient.vars.contractNumber}"
+      },
+      "contractFile": "schemas/accounts-light.schema.json"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "baseUrl": "${profile.baseUrl}",
+  "timeoutMs": "${profile.timeoutMs}",
+  "integrations": {
+    "publicUuid": {
+      "type": "http",
+      "method": "GET",
+      "url": "${profile.baseUrl}/uuid",
+      "expectedStatus": 200,
+      "extract": {
+        "uuid": "response.uuid"
+      }
+    }
+  },
+  "tests": [
+    {
+      "testId": "T-PROFILE-REAL-API",
+      "method": "GET",
+      "path": "/get",
+      "expectedStatus": 200,
+      "headers": {
+        "Accept": "application/json",
+        "X-Test-Env": "${profile.environmentName}",
+        "X-Request-Id": "${publicUuid.vars.uuid}"
+      },
+      "query": {
+        "env": "${profile.environmentName}",
+        "requestId": "${publicUuid.vars.uuid}"
+      },
+      "contractFile": "schemas/httpbingo-get.schema.json"
+    }
+  ]
+}

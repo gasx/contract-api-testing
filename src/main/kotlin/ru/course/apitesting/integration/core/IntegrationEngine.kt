@@ -194,12 +194,14 @@ class IntegrationEngine(
             )
 
             val resultWithVars = if (resultWithDuration.error == null) {
+                val extractedVars = extractVars(
+                    name = name,
+                    result = resultWithDuration,
+                    extractConfig = renderedConfig["extract"] as? JsonObject
+                )
+
                 resultWithDuration.copy(
-                    vars = extractVars(
-                        name = name,
-                        result = resultWithDuration,
-                        extractConfig = renderedConfig["extract"] as? JsonObject
-                    )
+                    vars = resultWithDuration.vars + extractedVars
                 )
             } else {
                 resultWithDuration

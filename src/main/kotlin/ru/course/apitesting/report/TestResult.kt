@@ -2,6 +2,7 @@ package ru.course.apitesting.report
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 
 @Serializable
@@ -45,5 +46,8 @@ data class TestResult(
     val violations: List<Violation>,
     val durationMs: Long = 0,
     val fileTransfers: List<FileTransferInfo> = emptyList(),
-    val integrations: List<IntegrationRunInfo> = emptyList()
+    val integrations: List<IntegrationRunInfo> = emptyList(),
+    val responseContentType: String? = null,
+    val responseBody: JsonElement? = null,
+    val responseText: String? = null
 )

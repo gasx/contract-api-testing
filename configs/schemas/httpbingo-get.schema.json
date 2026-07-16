@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "HTTPBingo get response",
+  "title": "HTTPBingo GET response",
   "type": "object",
   "required": [
     "args",
@@ -20,6 +20,10 @@
     },
     "url": {
       "type": "string"
+    },
+    "origin": {
+      "type": "string"
     }
-  }
+  },
+  "additionalProperties": true
 }
