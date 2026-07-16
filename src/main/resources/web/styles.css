@@ -449,3 +449,87 @@ tbody tr:hover {
     margin-top: 4px;
     color: #94a3b8;
 }
+.operation-response-block {
+    min-width: 180px;
+    margin-top: 8px;
+    padding: 8px 9px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: #0b1220;
+}
+
+.operation-response-block[open] {
+    border-color: rgba(56, 189, 248, 0.45);
+}
+
+.operation-response-block summary {
+    cursor: pointer;
+    color: var(--blue);
+    font-size: 12px;
+    font-weight: 800;
+    list-style: none;
+}
+
+.operation-response-block summary::-webkit-details-marker {
+    display: none;
+}
+
+.operation-response-block summary::before {
+    content: "▶";
+    display: inline-block;
+    margin-right: 6px;
+    color: var(--muted);
+    font-size: 10px;
+    transition: transform 0.15s ease;
+}
+
+.operation-response-block[open] summary::before {
+    transform: rotate(90deg);
+}
+
+.operation-response-meta {
+    margin-top: 8px;
+    margin-bottom: 8px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(148, 163, 184, 0.14);
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+.operation-response-body {
+    width: 100%;
+    max-width: 520px;
+    max-height: 320px;
+    margin: 0;
+    padding: 10px;
+    overflow: auto;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 8px;
+    background: #020617;
+    color: var(--text);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 11px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.operation-response-body::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.operation-response-body::-webkit-scrollbar-track {
+    background: #0b1220;
+}
+
+.operation-response-body::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: #334155;
+}
+
+.operation-response-body::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+}

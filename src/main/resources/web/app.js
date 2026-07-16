@@ -262,6 +262,30 @@ function renderIntegrationObject(title, value) {
     );
 }
 
+
+
+function renderOperationResponse(result) {
+    const hasJsonBody = result.responseBody !== null && result.responseBody !== undefined;
+    const hasTextBody = result.responseText !== null && result.responseText !== undefined && String(result.responseText).length > 0;
+    const hasContentType = result.responseContentType !== null && result.responseContentType !== undefined && String(result.responseContentType).length > 0;
+
+    if (!hasJsonBody && !hasTextBody && !hasContentType) {
+        return '';
+    }
+
+    const body = hasJsonBody
+        ? JSON.stringify(result.responseBody, null, 2)
+        : String(result.responseText || '');
+
+    return (
+        '<details class="operation-response-block">' +
+        '<summary>Ответ основного HTTP-запроса</summary>' +
+        '<div class="operation-response-meta">Content-Type: ' + safeHtml(result.responseContentType || '-') + '</div>' +
+        '<pre class="operation-response-body">' + escapeHtml(body) + '</pre>' +
+        '</details>'
+    );
+}
+
 function formatIntegrationValue(value) {
     if (value === null || value === undefined) {
         return '-';
@@ -400,6 +424,9 @@ function renderTable() {
             result.actualStatus,
             fileText,
             integrationText,
+            result.responseContentType,
+            JSON.stringify(result.responseBody || {}),
+            result.responseText,
             ...result.violations.map(violationText)
         ].join(' ').toLowerCase();
 
@@ -438,10 +465,19 @@ function renderTable() {
             safeHtml(result.target) + '</td>' +
             '<td>ожидалось: <b>' + safeHtml(result.expectedStatus) + '</b><br>' +
             'получено: <b>' + safeHtml(result.actualStatus) + '</b></td>' +
+            '<td>' + renderOperationResponse(result) + '</td>' +
             '<td><b>' + safeHtml(result.durationMs) + ' мс</b></td>' +
             '<td>' + errors + '</td>';
 
-        row.onclick = () => {
+        row.onclick = event => {
+            const ignoredClick = event.target.closest(
+                'details, summary, a, button, input, textarea, select, pre, .operation-response-block, .integration-vars, .file-link'
+            );
+
+            if (ignoredClick) {
+                return;
+            }
+
             const violations = result.violations.length === 0
                 ? 'Нарушения не обнаружены'
                 : result.violations.map(violation => {
@@ -497,6 +533,9 @@ function renderTable() {
                 'Время выполнения: ' + safe(result.durationMs) + ' мс\n\n' +
                 'Интеграции:\n' +
                 integrations +
+                '\n\n' +
+                'Ответ операции:\n' +
+                formatOperationResponseForAlert(result) +
                 '\n\n' +
                 'Нарушения:\n' +
                 violations
@@ -584,3 +623,23 @@ load().catch(error => {
         escapeHtml(error.message) +
         '</div></td></tr>';
 });
+
+function formatOperationResponseForAlert(result) {
+    const hasJsonBody = result.responseBody !== null && result.responseBody !== undefined;
+    const hasTextBody = result.responseText !== null && result.responseText !== undefined && String(result.responseText).length > 0;
+
+    if (!hasJsonBody && !hasTextBody) {
+        return 'Ответ отсутствует';
+    }
+
+    const body = hasJsonBody
+        ? JSON.stringify(result.responseBody, null, 2)
+        : String(result.responseText || '');
+
+    if (body.length > 3000) {
+        return body.slice(0, 3000) + '\n...обрезано...';
+    }
+
+    return body;
+}
+

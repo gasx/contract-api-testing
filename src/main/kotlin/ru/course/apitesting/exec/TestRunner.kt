@@ -1,5 +1,8 @@
 package ru.course.apitesting.exec
 
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import ru.course.apitesting.config.ApiTestCase
 import ru.course.apitesting.config.ConfigLoader
 import ru.course.apitesting.http.HttpExecutor
@@ -14,7 +17,6 @@ import ru.course.apitesting.schema.ExternalContractLoader
 import ru.course.apitesting.validate.ContractValidator
 import java.io.File
 import kotlin.system.measureTimeMillis
-import kotlinx.serialization.json.JsonObject
 
 class TestRunner(
     private val loader: ConfigLoader,
@@ -24,6 +26,13 @@ class TestRunner(
     private val integrationEngine: IntegrationEngine
 ) {
     private val contractLoader = ExternalContractLoader(loader)
+
+    private val json = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+        encodeDefaults = true
+        prettyPrint = true
+    }
 
     fun runAll(tests: List<ApiTestCase>): List<TestResult> {
         return tests.map { tc ->
@@ -77,13 +86,63 @@ class TestRunner(
                 executor.execute(preparedTestCase)
             }
 
-        return validator.validate(
+        val bodyText = httpResult.bodyText.orEmpty()
+
+        val responseBody = parseJsonOrNull(bodyText)
+        val responseText = if (responseBody == null) {
+            bodyText
+        } else {
+            null
+        }
+
+        val result = validator.validate(
             tc = preparedTestCase,
             contract = contract,
             http = httpResult
         ).copy(
-            integrations = prepared.integrations.toRunInfo()
+            integrations = prepared.integrations.toRunInfo(),
+            responseBody = responseBody,
+            responseText = responseText
         )
+
+        printOperationResponse(
+            testId = preparedTestCase.testId,
+            status = httpResult.status,
+            bodyText = bodyText
+        )
+
+        return result
+    }
+
+    private fun printOperationResponse(
+        testId: String,
+        status: Int?,
+        bodyText: String
+    ) {
+        println()
+        println("============================================================")
+        println("ОТВЕТ ОПЕРАЦИИ: $testId")
+        println("HTTP status: ${status ?: "-"}")
+        println("============================================================")
+
+        val parsed = parseJsonOrNull(bodyText)
+
+        if (parsed != null) {
+            println(json.encodeToString(JsonElement.serializer(), parsed))
+        } else {
+            println(bodyText)
+        }
+
+        println("============================================================")
+        println()
+    }
+
+    private fun parseJsonOrNull(text: String): JsonElement? {
+        return try {
+            json.parseToJsonElement(text)
+        } catch (e: Throwable) {
+            null
+        }
     }
 
     private fun buildIntegrationFailedResult(
