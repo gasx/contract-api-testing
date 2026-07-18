@@ -42,6 +42,9 @@ class IntegrationEngine(
         }
 
         val renderedTestCase = testCase.copy(
+            name = testCase.name?.let { renderer.renderString(it, context) },
+            description = testCase.description?.let { renderer.renderString(it, context) },
+            tags = testCase.tags.map { renderer.renderString(it, context) },
             path = renderer.renderString(testCase.path, context),
             headers = testCase.headers.mapValues { (_, value) ->
                 renderer.renderString(value, context)

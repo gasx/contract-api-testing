@@ -533,3 +533,328 @@ tbody tr:hover {
 .operation-response-body::-webkit-scrollbar-thumb:hover {
     background: #475569;
 }
+
+.results-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.test-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.test-card-row {
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: rgba(15, 23, 42, 0.74);
+}
+
+.test-card-pass {
+    border-left: 4px solid var(--green);
+}
+
+.test-card-fail {
+    border-left: 4px solid var(--red);
+}
+
+.test-card-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.test-title-block {
+    min-width: 0;
+}
+
+.test-title-line {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.test-title-line h3 {
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.25;
+}
+
+.test-id {
+    margin-top: 5px;
+    color: var(--muted);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 11px;
+}
+
+.test-description {
+    margin-top: 10px;
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.test-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 8px;
+}
+
+.test-tag {
+    padding: 3px 7px;
+    border: 1px solid rgba(56, 189, 248, 0.28);
+    border-radius: 999px;
+    color: var(--blue);
+    background: rgba(56, 189, 248, 0.08);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.test-metrics {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.metric-box,
+.http-summary {
+    min-width: 92px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #0b1220;
+}
+
+.metric-label {
+    color: var(--muted);
+    font-size: 10px;
+    text-transform: uppercase;
+}
+
+.metric-value {
+    margin-top: 4px;
+    font-size: 14px;
+    font-weight: 900;
+}
+
+.http-ok .metric-value {
+    color: var(--green);
+}
+
+.http-bad .metric-value {
+    color: var(--red);
+}
+
+.test-main-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(260px, 0.8fr);
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.test-section-card {
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #0b1220;
+}
+
+.section-title {
+    margin-bottom: 8px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+}
+
+.request-line {
+    margin-bottom: 10px;
+    padding: 8px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 8px;
+    background: #020617;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 12px;
+    word-break: break-word;
+}
+
+.request-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.request-part {
+    min-width: 0;
+}
+
+.request-part-title {
+    margin-bottom: 5px;
+    color: var(--blue);
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.kv-row {
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr);
+    gap: 8px;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    font-size: 12px;
+}
+
+.kv-key {
+    color: var(--muted);
+    word-break: break-word;
+}
+
+.kv-value {
+    color: var(--text);
+    word-break: break-word;
+}
+
+.json-preview {
+    max-height: 180px;
+    margin: 0;
+    padding: 8px;
+    overflow: auto;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 8px;
+    background: #020617;
+    color: var(--text);
+    font-size: 11px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.result-facts {
+    display: grid;
+    gap: 8px;
+    font-size: 12px;
+    word-break: break-word;
+}
+
+.test-details-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.test-detail {
+    padding: 9px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: rgba(2, 6, 23, 0.44);
+}
+
+.test-detail summary {
+    cursor: pointer;
+    color: var(--blue);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.test-detail > *:not(summary) {
+    margin-top: 8px;
+}
+
+.ok-note {
+    padding: 8px;
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    border-radius: 8px;
+    background: rgba(34, 197, 94, 0.08);
+    color: var(--green);
+    font-size: 12px;
+}
+
+.error-card {
+    padding: 8px;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    border-radius: 8px;
+    background: rgba(239, 68, 68, 0.08);
+}
+
+.empty-state {
+    padding: 18px;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    color: var(--muted);
+    text-align: center;
+}
+
+.operation-response-block {
+    min-width: 180px;
+    margin-top: 8px;
+    padding: 8px 9px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: #0b1220;
+}
+
+.operation-response-block[open] {
+    border-color: rgba(56, 189, 248, 0.45);
+}
+
+.operation-response-block summary {
+    cursor: pointer;
+    color: var(--blue);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.operation-response-meta {
+    margin-top: 8px;
+    margin-bottom: 8px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(148, 163, 184, 0.14);
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+.operation-response-body {
+    width: 100%;
+    max-height: 320px;
+    margin: 0;
+    padding: 10px;
+    overflow: auto;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 8px;
+    background: #020617;
+    color: var(--text);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 11px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+@media (max-width: 1100px) {
+    .test-card-header,
+    .test-main-grid,
+    .test-details-grid,
+    .request-grid {
+        display: block;
+    }
+
+    .test-metrics {
+        margin-top: 10px;
+    }
+
+    .test-section-card,
+    .test-detail {
+        margin-top: 10px;
+    }
+}

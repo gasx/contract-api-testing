@@ -15,6 +15,9 @@ data class RunConfig(
 @Serializable
 data class ApiTestCase(
     val testId: String,
+    val name: String? = null,
+    val description: String? = null,
+    val tags: List<String> = emptyList(),
     val beforeTest: List<String> = emptyList(),
     val method: String,
     val path: String,
