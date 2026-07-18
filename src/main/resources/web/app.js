@@ -58,6 +58,10 @@ function classify(code) {
         return 'Другая ошибка';
     }
 
+    if (code.includes('ASSERTION')) {
+        return 'Ошибка assert-проверки';
+    }
+
     if (code.includes('INTEGRATION')) {
         return 'Ошибка интеграции';
     }
@@ -121,6 +125,110 @@ function formatViolation(violation) {
     return safe(violation.details);
 }
 
+function formatIntegrationValue(value) {
+    if (value === null || value === undefined) {
+        return '-';
+    }
+
+    if (typeof value === 'object') {
+        return JSON.stringify(value);
+    }
+
+    return String(value);
+}
+
+function displayTestTitle(result) {
+    return safe(result.name || result.testId || 'Без названия');
+}
+
+function renderTags(result) {
+    const tags = Array.isArray(result.tags) ? result.tags : [];
+
+    if (tags.length === 0) {
+        return '';
+    }
+
+    return (
+        '<div class="test-tags">' +
+        tags.map(tag => '<span class="test-tag">' + safeHtml(tag) + '</span>').join('') +
+        '</div>'
+    );
+}
+
+function renderJsonPreview(value) {
+    if (value === null || value === undefined) {
+        return '<span class="small">не указано</span>';
+    }
+
+    if (typeof value === 'object') {
+        return '<pre class="json-preview">' + escapeHtml(JSON.stringify(value, null, 2)) + '</pre>';
+    }
+
+    return '<pre class="json-preview">' + escapeHtml(String(value)) + '</pre>';
+}
+
+function renderMapPreview(title, value) {
+    const map = value && typeof value === 'object' ? value : {};
+    const keys = Object.keys(map);
+
+    if (keys.length === 0) {
+        return (
+            '<div class="request-part">' +
+            '<div class="request-part-title">' + safeHtml(title) + '</div>' +
+            '<span class="small">не указано</span>' +
+            '</div>'
+        );
+    }
+
+    const rows = keys.map(key => {
+        return (
+            '<div class="kv-row">' +
+            '<span class="kv-key">' + safeHtml(key) + '</span>' +
+            '<span class="kv-value">' + safeHtml(formatIntegrationValue(map[key])) + '</span>' +
+            '</div>'
+        );
+    }).join('');
+
+    return (
+        '<div class="request-part">' +
+        '<div class="request-part-title">' + safeHtml(title) + '</div>' +
+        rows +
+        '</div>'
+    );
+}
+
+function renderRequestInfo(result) {
+    const request = result.request || {};
+    const method = request.method || result.method;
+    const path = request.path || result.target;
+    const query = request.query || {};
+    const headers = request.headers || {};
+    const body = request.body;
+
+    const queryString = Object.keys(query).length === 0
+        ? ''
+        : '?' + Object.keys(query)
+            .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(String(query[key])))
+            .join('&');
+
+    return (
+        '<div class="request-box">' +
+        '<div class="request-line">' +
+        '<span class="method">' + safeHtml(method) + '</span> ' +
+        '<span>' + safeHtml(path + queryString) + '</span>' +
+        '</div>' +
+        '<div class="request-grid">' +
+        renderMapPreview('Query', query) +
+        renderMapPreview('Headers', headers) +
+        '<div class="request-part">' +
+        '<div class="request-part-title">Body</div>' +
+        renderJsonPreview(body) +
+        '</div>' +
+        '</div>' +
+        '</div>'
+    );
+}
+
 function renderFileTransfers(test) {
     const transfers = Array.isArray(test.fileTransfers)
         ? test.fileTransfers
@@ -134,9 +242,7 @@ function renderFileTransfers(test) {
         const received = file.direction === 'RECEIVED';
         const kind = received ? 'Получен файл' : 'Отправлен файл';
         const fileName = escapeHtml(file.fileName || 'Файл');
-        const contentType = escapeHtml(
-            file.contentType || 'application/octet-stream'
-        );
+        const contentType = escapeHtml(file.contentType || 'application/octet-stream');
         const fileUrl =
             '/api/files/' +
             encodeURIComponent(test.testId) +
@@ -172,6 +278,34 @@ function renderFileTransfers(test) {
             '</div>'
         );
     }).join('');
+}
+
+function renderIntegrationObject(title, value) {
+    if (!value || typeof value !== 'object') {
+        return '';
+    }
+
+    const keys = Object.keys(value);
+
+    if (keys.length === 0) {
+        return '';
+    }
+
+    const rows = keys.map(key => {
+        return (
+            '<div class="integration-var-row">' +
+            '<span class="integration-var-key">' + safeHtml(key) + '</span>' +
+            '<span class="integration-var-value">' + safeHtml(formatIntegrationValue(value[key])) + '</span>' +
+            '</div>'
+        );
+    }).join('');
+
+    return (
+        '<details class="integration-vars">' +
+        '<summary>' + safeHtml(title) + '</summary>' +
+        rows +
+        '</details>'
+    );
 }
 
 function renderIntegrations(test) {
@@ -229,48 +363,13 @@ function renderIntegrations(test) {
     }).join('');
 }
 
-function renderIntegrationObject(title, value) {
-    if (!value || typeof value !== 'object') {
-        return '';
-    }
-
-    const keys = Object.keys(value);
-
-    if (keys.length === 0) {
-        return '';
-    }
-
-    const rows = keys.slice(0, 5).map(key => {
-        return (
-            '<div class="integration-var-row">' +
-            '<span class="integration-var-key">' + safeHtml(key) + '</span>' +
-            '<span class="integration-var-value">' + safeHtml(formatIntegrationValue(value[key])) + '</span>' +
-            '</div>'
-        );
-    }).join('');
-
-    const more = keys.length > 5
-        ? '<div class="integration-var-more">+' + safeHtml(keys.length - 5) + ' ещё</div>'
-        : '';
-
-    return (
-        '<details class="integration-vars">' +
-        '<summary>' + safeHtml(title) + '</summary>' +
-        rows +
-        more +
-        '</details>'
-    );
-}
-
-
-
 function renderOperationResponse(result) {
     const hasJsonBody = result.responseBody !== null && result.responseBody !== undefined;
     const hasTextBody = result.responseText !== null && result.responseText !== undefined && String(result.responseText).length > 0;
     const hasContentType = result.responseContentType !== null && result.responseContentType !== undefined && String(result.responseContentType).length > 0;
 
     if (!hasJsonBody && !hasTextBody && !hasContentType) {
-        return '';
+        return '<span class="small">ответ не сохранён</span>';
     }
 
     const body = hasJsonBody
@@ -278,24 +377,111 @@ function renderOperationResponse(result) {
         : String(result.responseText || '');
 
     return (
-        '<details class="operation-response-block">' +
-        '<summary>Ответ основного HTTP-запроса</summary>' +
+        '<div class="operation-response-block">' +
         '<div class="operation-response-meta">Content-Type: ' + safeHtml(result.responseContentType || '-') + '</div>' +
         '<pre class="operation-response-body">' + escapeHtml(body) + '</pre>' +
-        '</details>'
+        '</div>'
     );
 }
 
-function formatIntegrationValue(value) {
-    if (value === null || value === undefined) {
-        return '-';
+function renderViolations(result) {
+    const violations = Array.isArray(result.violations) ? result.violations : [];
+
+    if (violations.length === 0) {
+        return '<div class="ok-note">Нарушений не найдено</div>';
     }
 
-    if (typeof value === 'object') {
-        return JSON.stringify(value);
-    }
+    return violations.map(violation => {
+        return (
+            '<div class="error error-card">' +
+            '<b>' + escapeHtml(classify(violation.code)) + '</b>' +
+            '<div class="small">path: ' + safeHtml(violation.path) + '</div>' +
+            '<div>' + escapeHtml(formatViolation(violation)) + '</div>' +
+            '</div>'
+        );
+    }).join('');
+}
 
-    return String(value);
+function renderHttpSummary(result) {
+    const ok = result.actualStatus === result.expectedStatus;
+    const cls = ok ? 'http-ok' : 'http-bad';
+
+    return (
+        '<div class="http-summary ' + cls + '">' +
+        '<div class="metric-label">HTTP</div>' +
+        '<div class="metric-value">' +
+        safeHtml(result.actualStatus) +
+        ' / ' +
+        safeHtml(result.expectedStatus) +
+        '</div>' +
+        '</div>'
+    );
+}
+
+function renderTestCard(result) {
+    const passed = !!result.passed;
+    const badge = passed
+        ? '<span class="badge badge-pass">PASS</span>'
+        : '<span class="badge badge-fail">FAIL</span>';
+
+    const description = result.description
+        ? '<div class="test-description">' + safeHtml(result.description) + '</div>'
+        : '';
+
+    return (
+        '<article class="test-card-row ' + (passed ? 'test-card-pass' : 'test-card-fail') + '">' +
+        '<div class="test-card-header">' +
+        '<div class="test-title-block">' +
+        '<div class="test-title-line">' +
+        badge +
+        '<h3>' + safeHtml(displayTestTitle(result)) + '</h3>' +
+        '</div>' +
+        '<div class="test-id">' + safeHtml(result.testId) + '</div>' +
+        renderTags(result) +
+        '</div>' +
+        '<div class="test-metrics">' +
+        renderHttpSummary(result) +
+        '<div class="metric-box">' +
+        '<div class="metric-label">Время</div>' +
+        '<div class="metric-value">' + safeHtml(result.durationMs) + ' мс</div>' +
+        '</div>' +
+        '</div>' +
+        '</div>' +
+        description +
+        '<div class="test-main-grid">' +
+        '<section class="test-section-card">' +
+        '<div class="section-title">Проверяемый запрос</div>' +
+        renderRequestInfo(result) +
+        '</section>' +
+        '<section class="test-section-card">' +
+        '<div class="section-title">Результат проверки</div>' +
+        '<div class="result-facts">' +
+        '<div><span class="small">Контракт:</span><br>' + safeHtml(result.contractId) + '</div>' +
+        '<div><span class="small">Метод:</span><br>' + safeHtml(result.method) + '</div>' +
+        '<div><span class="small">Адрес:</span><br>' + safeHtml(result.target) + '</div>' +
+        '</div>' +
+        '</section>' +
+        '</div>' +
+        '<div class="test-details-grid">' +
+        '<details class="test-detail" ' + (!passed ? 'open' : '') + '>' +
+        '<summary>Ошибки и нарушения</summary>' +
+        renderViolations(result) +
+        '</details>' +
+        '<details class="test-detail">' +
+        '<summary>Интеграции</summary>' +
+        renderIntegrations(result) +
+        '</details>' +
+        '<details class="test-detail">' +
+        '<summary>Файлы</summary>' +
+        renderFileTransfers(result) +
+        '</details>' +
+        '<details class="test-detail">' +
+        '<summary>Ответ</summary>' +
+        renderOperationResponse(result) +
+        '</details>' +
+        '</div>' +
+        '</article>'
+    );
 }
 
 function renderCharts(passed, failed) {
@@ -329,7 +515,9 @@ function renderCharts(passed, failed) {
     const errorMap = {};
 
     allResults.forEach(result => {
-        result.violations.forEach(violation => {
+        const violations = Array.isArray(result.violations) ? result.violations : [];
+
+        violations.forEach(violation => {
             const key = classify(violation.code);
             errorMap[key] = (errorMap[key] || 0) + 1;
         });
@@ -351,20 +539,12 @@ function renderCharts(passed, failed) {
         options: {
             scales: {
                 x: {
-                    ticks: {
-                        color: '#e5e7eb'
-                    },
-                    grid: {
-                        color: '#263244'
-                    }
+                    ticks: { color: '#e5e7eb' },
+                    grid: { color: '#263244' }
                 },
                 y: {
-                    ticks: {
-                        color: '#e5e7eb'
-                    },
-                    grid: {
-                        color: '#263244'
-                    }
+                    ticks: { color: '#e5e7eb' },
+                    grid: { color: '#263244' }
                 }
             },
             plugins: {
@@ -380,9 +560,7 @@ function renderCharts(passed, failed) {
 
 function renderTable() {
     const query = document.getElementById('search').value.toLowerCase();
-    const tbody = document.getElementById('testRows');
-
-    tbody.innerHTML = '';
+    const container = document.getElementById('testRows');
 
     const filtered = allResults.filter(result => {
         const statusMatches =
@@ -391,159 +569,37 @@ function renderTable() {
             (currentFilter === 'FAIL' && !result.passed) ||
             currentFilter === result.method;
 
-        const fileText = (result.fileTransfers || [])
-            .map(file => {
-                return [
-                    file.direction,
-                    file.fileName,
-                    file.contentType
-                ].join(' ');
-            })
-            .join(' ');
-
-        const integrationText = (result.integrations || [])
-            .map(item => {
-                return [
-                    item.name,
-                    item.type,
-                    item.status,
-                    item.durationMs,
-                    item.attempts,
-                    item.error,
-                    JSON.stringify(item.vars || {}),
-                    JSON.stringify(item.savedVars || {})
-                ].join(' ');
-            })
-            .join(' ');
+        const request = result.request || {};
 
         const text = [
             result.testId,
+            result.name,
+            result.description,
+            Array.isArray(result.tags) ? result.tags.join(' ') : '',
             result.method,
             result.target,
+            result.contractId,
             result.expectedStatus,
             result.actualStatus,
-            fileText,
-            integrationText,
-            result.responseContentType,
+            JSON.stringify(request.query || {}),
+            JSON.stringify(request.headers || {}),
+            JSON.stringify(request.body || {}),
+            JSON.stringify(result.integrations || {}),
+            JSON.stringify(result.fileTransfers || {}),
             JSON.stringify(result.responseBody || {}),
             result.responseText,
-            ...result.violations.map(violationText)
+            ...(Array.isArray(result.violations) ? result.violations.map(violationText) : [])
         ].join(' ').toLowerCase();
 
         return statusMatches && text.includes(query);
     });
 
-    filtered.forEach(result => {
-        const badge = result.passed
-            ? '<span class="badge badge-pass">УСПЕШНО</span>'
-            : '<span class="badge badge-fail">ОШИБКА</span>';
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state">По текущему фильтру тесты не найдены</div>';
+        return;
+    }
 
-        const errors = result.violations.length === 0
-            ? '<span class="small">нарушений не найдено</span>'
-            : result.violations.map(violation => {
-                return (
-                    '<div class="error">' +
-                    '<b>' + escapeHtml(classify(violation.code)) + '</b> · ' +
-                    safeHtml(violation.path) +
-                    '<br>' +
-                    '<span class="small">' +
-                    escapeHtml(formatViolation(violation)) +
-                    '</span>' +
-                    '</div>'
-                );
-            }).join('');
-
-        const row = document.createElement('tr');
-
-        row.innerHTML =
-            '<td>' + badge + '</td>' +
-            '<td><b>' + safeHtml(result.testId) + '</b><br>' +
-            '<span class="small">' + safeHtml(result.contractId) + '</span></td>' +
-            '<td>' + renderFileTransfers(result) + '</td>' +
-            '<td>' + renderIntegrations(result) + '</td>' +
-            '<td><span class="method">' + safeHtml(result.method) + '</span> ' +
-            safeHtml(result.target) + '</td>' +
-            '<td>ожидалось: <b>' + safeHtml(result.expectedStatus) + '</b><br>' +
-            'получено: <b>' + safeHtml(result.actualStatus) + '</b></td>' +
-            '<td>' + renderOperationResponse(result) + '</td>' +
-            '<td><b>' + safeHtml(result.durationMs) + ' мс</b></td>' +
-            '<td>' + errors + '</td>';
-
-        row.onclick = event => {
-            const ignoredClick = event.target.closest(
-                'details, summary, a, button, input, textarea, select, pre, .operation-response-block, .integration-vars, .file-link'
-            );
-
-            if (ignoredClick) {
-                return;
-            }
-
-            const violations = result.violations.length === 0
-                ? 'Нарушения не обнаружены'
-                : result.violations.map(violation => {
-                    return (
-                        '- ' +
-                        classify(violation.code) +
-                        ' | поле: ' +
-                        safe(violation.path) +
-                        ' | ' +
-                        formatViolation(violation)
-                    );
-                }).join('\n');
-
-            const integrations = Array.isArray(result.integrations) && result.integrations.length > 0
-                ? result.integrations.map(item => {
-                    const error = item.error
-                        ? ' | error: ' + safe(item.error)
-                        : '';
-
-                    const vars = item.vars && Object.keys(item.vars).length > 0
-                        ? '\n  vars: ' + JSON.stringify(item.vars)
-                        : '';
-
-                    const savedVars = item.savedVars && Object.keys(item.savedVars).length > 0
-                        ? '\n  savedVars: ' + JSON.stringify(item.savedVars)
-                        : '';
-
-                    return (
-                        '- ' +
-                        safe(item.name) +
-                        ' | type: ' +
-                        safe(item.type) +
-                        ' | status: ' +
-                        safe(item.status) +
-                        ' | ' +
-                        safe(item.durationMs) +
-                        ' мс' +
-                        ' | attempts: ' +
-                        safe(item.attempts || 1) +
-                        error +
-                        vars +
-                        savedVars
-                    );
-                }).join('\n')
-                : 'Интеграции не использовались';
-
-            alert(
-                'Тест: ' + safe(result.testId) + '\n' +
-                'Метод: ' + safe(result.method) + '\n' +
-                'Адрес: ' + safe(result.target) + '\n' +
-                'Ожидался HTTP-статус: ' + safe(result.expectedStatus) + '\n' +
-                'Получен HTTP-статус: ' + safe(result.actualStatus) + '\n' +
-                'Время выполнения: ' + safe(result.durationMs) + ' мс\n\n' +
-                'Интеграции:\n' +
-                integrations +
-                '\n\n' +
-                'Ответ операции:\n' +
-                formatOperationResponseForAlert(result) +
-                '\n\n' +
-                'Нарушения:\n' +
-                violations
-            );
-        };
-
-        tbody.appendChild(row);
-    });
+    container.innerHTML = filtered.map(renderTestCard).join('');
 }
 
 async function load() {
@@ -563,7 +619,7 @@ async function load() {
         : Math.round((passed / total) * 100);
 
     const violations = allResults.reduce((sum, result) => {
-        return sum + result.violations.length;
+        return sum + (Array.isArray(result.violations) ? result.violations.length : 0);
     }, 0);
 
     const totalTime = allResults.reduce((sum, result) => {
@@ -619,27 +675,7 @@ load().catch(error => {
         'status-pill status-fail';
 
     document.getElementById('testRows').innerHTML =
-        '<tr><td colspan="8"><div class="error">' +
+        '<div class="error error-card">' +
         escapeHtml(error.message) +
-        '</div></td></tr>';
+        '</div>';
 });
-
-function formatOperationResponseForAlert(result) {
-    const hasJsonBody = result.responseBody !== null && result.responseBody !== undefined;
-    const hasTextBody = result.responseText !== null && result.responseText !== undefined && String(result.responseText).length > 0;
-
-    if (!hasJsonBody && !hasTextBody) {
-        return 'Ответ отсутствует';
-    }
-
-    const body = hasJsonBody
-        ? JSON.stringify(result.responseBody, null, 2)
-        : String(result.responseText || '');
-
-    if (body.length > 3000) {
-        return body.slice(0, 3000) + '\n...обрезано...';
-    }
-
-    return body;
-}
-

@@ -12,6 +12,7 @@ import ru.course.apitesting.integration.core.IntegrationFailedException
 import ru.course.apitesting.integration.core.IntegrationResult
 import ru.course.apitesting.report.IntegrationRunInfo
 import ru.course.apitesting.report.TestResult
+import ru.course.apitesting.report.TestRequestInfo
 import ru.course.apitesting.report.Violation
 import ru.course.apitesting.schema.ExternalContractLoader
 import ru.course.apitesting.validate.ContractValidator

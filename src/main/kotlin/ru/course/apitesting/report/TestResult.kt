@@ -35,6 +35,15 @@ data class IntegrationRunInfo(
 )
 
 @Serializable
+data class TestRequestInfo(
+    val method: String,
+    val path: String,
+    val headers: Map<String, String> = emptyMap(),
+    val query: Map<String, String> = emptyMap(),
+    val body: JsonElement? = null
+)
+
+@Serializable
 data class TestResult(
     val testId: String,
     val contractId: String,
@@ -47,6 +56,10 @@ data class TestResult(
     val durationMs: Long = 0,
     val fileTransfers: List<FileTransferInfo> = emptyList(),
     val integrations: List<IntegrationRunInfo> = emptyList(),
+    val name: String? = null,
+    val description: String? = null,
+    val tags: List<String> = emptyList(),
+    val request: TestRequestInfo? = null,
     val responseContentType: String? = null,
     val responseBody: JsonElement? = null,
     val responseText: String? = null

@@ -12,7 +12,7 @@
 <div class="header">
     <div>
         <div class="title">Результаты тестирования API</div>
-        <div class="subtitle">Автоматическая проверка REST API по контрактам и схемам</div>
+        <div class="subtitle">Контрактные и интеграционные проверки REST API</div>
     </div>
     <div id="statusPill" class="status-pill">ЗАГРУЗКА</div>
 </div>
@@ -79,11 +79,16 @@
 </div>
 
 <div class="panel">
-    <h2>Результаты тестов</h2>
+    <div class="results-head">
+        <div>
+            <h2>Результаты тестов</h2>
+            <div class="small">Карточки показывают, что проверяли, куда ходили, что получили по статусу и где ошибка</div>
+        </div>
+    </div>
 
     <input
             id="search"
-            placeholder="Поиск по названию теста, методу, адресу, файлу или ошибке..."
+            placeholder="Поиск по названию, описанию, тегу, методу, адресу, интеграции или ошибке..."
     >
 
     <div class="filters">
@@ -94,26 +99,10 @@
         <button onclick="setFilter('POST', this)">POST</button>
         <button onclick="setFilter('PUT', this)">PUT</button>
         <button onclick="setFilter('PATCH', this)">PATCH</button>
+        <button onclick="setFilter('DELETE', this)">DELETE</button>
     </div>
 
-    <div class="table-wrap">
-        <table>
-            <thead>
-            <tr>
-                <th>Статус</th>
-                <th>Тест</th>
-                <th>Файлы</th>
-                <th>Интеграции</th>
-                <th>Запрос</th>
-                <th>HTTP</th>
-                <th>Ответ</th>
-                <th>Время</th>
-                <th>Ошибки</th>
-            </tr>
-            </thead>
-            <tbody id="testRows"></tbody>
-        </table>
-    </div>
+    <div id="testRows" class="test-list"></div>
 </div>
 </body>
 </html>
