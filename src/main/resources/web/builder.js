@@ -865,3 +865,293 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+/* Contract storage UI */
+
+document.addEventListener('DOMContentLoaded', function () {
+    setTimeout(initContractStorageUi, 0);
+});
+
+function initContractStorageUi() {
+    const tabs = document.querySelector('.builder-lite-tabs') || document.querySelector('.tabs');
+    const main = document.querySelector('.main') || document.querySelector('.builder-lite-main');
+
+    if (!tabs || !main || document.getElementById('mainTab-contracts')) {
+        return;
+    }
+
+    const contractsButton = document.createElement('button');
+    contractsButton.type = 'button';
+    contractsButton.innerText = 'Контракты';
+    contractsButton.onclick = function () {
+        showMainTab('contracts', contractsButton);
+        loadContracts();
+    };
+
+    tabs.appendChild(contractsButton);
+
+    const section = document.createElement('section');
+    section.id = 'mainTab-contracts';
+    section.className = 'builder-lite-tab-content';
+
+    section.innerHTML =
+        '<section class="panel">' +
+        '<div class="panel-head">' +
+        '<div>' +
+        '<div class="panel-title" style="margin:0">Хранилище контрактов</div>' +
+        '<div class="note">Контракты сохраняются в configs/schemas и потом выбираются в поле Contract file.</div>' +
+        '</div>' +
+        '<button type="button" onclick="loadContracts()">Обновить список</button>' +
+        '</div>' +
+
+        '<label>Файл контракта с компьютера</label>' +
+        '<input id="contractFileInput" type="file" accept=".json,application/json">' +
+
+        '<label>Сохранить как</label>' +
+        '<input id="contractStoragePath" placeholder="schemas/uploaded/user.schema.json">' +
+
+        '<div class="row-actions">' +
+        '<button type="button" class="primary-button" onclick="uploadContractFromUi()">Загрузить / заменить</button>' +
+        '<button type="button" onclick="clearContractUploadForm()">Очистить</button>' +
+        '</div>' +
+
+        '<div id="contractUploadStatus" class="note"></div>' +
+        '</section>' +
+
+        '<section class="panel">' +
+        '<div class="panel-title">Список контрактов</div>' +
+        '<div id="contractsList" class="dynamic-list"></div>' +
+        '</section>';
+
+    main.appendChild(section);
+
+    loadContracts();
+}
+
+async function loadContracts() {
+    const list = document.getElementById('contractsList');
+
+    if (!list) {
+        return;
+    }
+
+    list.innerHTML = '<div class="note">Загружаю список контрактов...</div>';
+
+    try {
+        const response = await fetch('/api/contracts');
+        const data = await response.json();
+
+        if (!data.ok) {
+            list.innerHTML = '<div class="builder-lite-run-fail">Ошибка: ' + contractEscapeHtml(data.error || 'unknown') + '</div>';
+            return;
+        }
+
+        renderContractsList(data.contracts || []);
+    } catch (e) {
+        list.innerHTML = '<div class="builder-lite-run-fail">Ошибка загрузки контрактов: ' + contractEscapeHtml(e.message) + '</div>';
+    }
+}
+
+function renderContractsList(contracts) {
+    const list = document.getElementById('contractsList');
+
+    if (!list) {
+        return;
+    }
+
+    if (!contracts.length) {
+        list.innerHTML = '<div class="note">Контрактов пока нет. Загрузи JSON-файл выше.</div>';
+        return;
+    }
+
+    list.innerHTML = '';
+
+    contracts.forEach(function (item) {
+        const row = document.createElement('div');
+        row.className = 'integration-card';
+        row.style.display = 'grid';
+        row.style.gridTemplateColumns = 'minmax(0, 1fr) auto auto';
+        row.style.gap = '10px';
+        row.style.alignItems = 'center';
+
+        const info = document.createElement('div');
+
+        const title = document.createElement('div');
+        title.style.fontWeight = '700';
+        title.innerText = item.path;
+
+        const meta = document.createElement('div');
+        meta.className = 'note';
+        meta.style.margin = '4px 0 0';
+        meta.innerText = formatContractSize(item.sizeBytes) + ' · ' + formatContractDate(item.modifiedAt);
+
+        info.appendChild(title);
+        info.appendChild(meta);
+
+        const useButton = document.createElement('button');
+        useButton.type = 'button';
+        useButton.innerText = 'Выбрать';
+        useButton.onclick = function () {
+            selectStoredContract(item.path);
+        };
+
+        const replaceButton = document.createElement('button');
+        replaceButton.type = 'button';
+        replaceButton.innerText = 'Заменить';
+        replaceButton.onclick = function () {
+            prepareReplaceContract(item.path);
+        };
+
+        row.appendChild(info);
+        row.appendChild(useButton);
+        row.appendChild(replaceButton);
+
+        list.appendChild(row);
+    });
+}
+
+function selectStoredContract(path) {
+    const input = document.getElementById('contractFile');
+
+    if (input) {
+        input.value = path;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    if (typeof buildConfig === 'function') {
+        buildConfig();
+    }
+
+    const scenarioButton = document.querySelector('.builder-lite-tabs button');
+    if (typeof showMainTab === 'function' && scenarioButton) {
+        showMainTab('scenario', scenarioButton);
+    }
+}
+
+function prepareReplaceContract(path) {
+    const pathInput = document.getElementById('contractStoragePath');
+    const fileInput = document.getElementById('contractFileInput');
+    const status = document.getElementById('contractUploadStatus');
+
+    if (pathInput) {
+        pathInput.value = path;
+    }
+
+    if (status) {
+        status.innerHTML = 'Выбран контракт для замены: <b>' + contractEscapeHtml(path) + '</b>. Теперь выбери новый JSON-файл и нажми “Загрузить / заменить”.';
+    }
+
+    if (fileInput) {
+        fileInput.focus();
+    }
+}
+
+async function uploadContractFromUi() {
+    const fileInput = document.getElementById('contractFileInput');
+    const pathInput = document.getElementById('contractStoragePath');
+    const status = document.getElementById('contractUploadStatus');
+
+    if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+        if (status) {
+            status.innerText = 'Сначала выбери JSON-файл с компьютера.';
+        }
+        return;
+    }
+
+    const file = fileInput.files[0];
+    const content = await file.text();
+    const targetPath = pathInput ? pathInput.value.trim() : '';
+
+    if (status) {
+        status.innerText = 'Загружаю контракт...';
+    }
+
+    try {
+        const response = await fetch('/api/contracts', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                fileName: file.name,
+                path: targetPath || null,
+                content: content
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.ok) {
+            if (status) {
+                status.innerHTML = '<span class="builder-lite-run-fail">Ошибка: ' + contractEscapeHtml(data.error || 'unknown') + '</span>';
+            }
+            return;
+        }
+
+        if (status) {
+            status.innerHTML = '<span class="builder-lite-run-pass">Контракт сохранён: ' + contractEscapeHtml(data.path) + '</span>';
+        }
+
+        if (pathInput) {
+            pathInput.value = data.path || '';
+        }
+
+        selectStoredContract(data.path);
+        loadContracts();
+    } catch (e) {
+        if (status) {
+            status.innerHTML = '<span class="builder-lite-run-fail">Ошибка: ' + contractEscapeHtml(e.message) + '</span>';
+        }
+    }
+}
+
+function clearContractUploadForm() {
+    const fileInput = document.getElementById('contractFileInput');
+    const pathInput = document.getElementById('contractStoragePath');
+    const status = document.getElementById('contractUploadStatus');
+
+    if (fileInput) {
+        fileInput.value = '';
+    }
+
+    if (pathInput) {
+        pathInput.value = '';
+    }
+
+    if (status) {
+        status.innerText = '';
+    }
+}
+
+function formatContractSize(sizeBytes) {
+    const n = Number(sizeBytes || 0);
+
+    if (n < 1024) {
+        return n + ' B';
+    }
+
+    if (n < 1024 * 1024) {
+        return Math.round(n / 1024) + ' KB';
+    }
+
+    return (n / 1024 / 1024).toFixed(1) + ' MB';
+}
+
+function formatContractDate(value) {
+    try {
+        return new Date(value).toLocaleString();
+    } catch (e) {
+        return value || '';
+    }
+}
+
+function contractEscapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+/* End contract storage UI */
