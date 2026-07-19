@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>API Test Builder</title>
+    <link rel="stylesheet" href="/builder-simple.css">
+    <script src="/builder-simple.js" defer></script>
+</head>
+<body class="simple-page">
+<header class="simple-topbar">
+    <div class="brand">
+        <div class="simple-title">API Test Builder</div>
+        <div class="simple-subtitle">Редактор сценариев автотестов</div>
+    </div>
+
+    <div class="simple-actions">
+        <button class="simple-primary" onclick="runScenarioFromUi()">Запустить набор</button>
+        <a href="/" class="simple-link">Отчёт</a>
+        <button onclick="copyConfig()">Скопировать JSON</button>
+        <button onclick="downloadConfig()">Скачать JSON</button>
+    </div>
+</header>
+
+<div class="simple-layout">
+    <aside class="simple-sidebar">
+        <section class="simple-card">
+            <div class="simple-card-title">Проект</div>
+
+            <label>Base URL</label>
+            <input id="baseUrl" value="https://jsonplaceholder.typicode.com" placeholder="https://api.example.com">
+
+            <label>Timeout, ms</label>
+            <input id="timeoutMs" value="15000" placeholder="15000">
+        </section>
+
+        <section class="simple-card">
+            <div class="simple-card-head">
+                <div class="simple-card-title">Тесты</div>
+                <button onclick="addTest()">+ Новый</button>
+            </div>
+
+            <div id="testsList" class="simple-test-list"></div>
+
+            <div class="simple-side-actions">
+                <button onclick="duplicateTest()">Дублировать</button>
+                <button onclick="deleteTest()">Удалить</button>
+            </div>
+        </section>
+    </aside>
+
+    <main class="simple-main">
+        <section class="simple-card simple-editor-head">
+            <div>
+                <div class="simple-section-kicker">Текущий тест</div>
+                <label>Название</label>
+                <input id="testName" placeholder="Получение поста №1 возвращает данные поста">
+            </div>
+
+            <details class="simple-details compact-details">
+                <summary>Параметры теста</summary>
+
+                <label>ID теста</label>
+                <input id="testId" placeholder="GET_POST_1_RETURNS_POST">
+
+                <label>Описание</label>
+                <textarea id="testDescription" placeholder="Короткое описание теста"></textarea>
+
+                <label>Метки</label>
+                <input id="tags" placeholder="smoke, posts">
+            </details>
+        </section>
+
+        <div class="simple-work-grid">
+            <section class="simple-card">
+                <div class="simple-section-head">
+                    <div>
+                        <h2>Запрос</h2>
+                        <p>Основной HTTP-запрос, который проверяет тест.</p>
+                    </div>
+                </div>
+
+                <div class="simple-request-line">
+                    <div>
+                        <label>Метод</label>
+                        <select id="method">
+                            <option>GET</option>
+                            <option>POST</option>
+                            <option>PUT</option>
+                            <option>PATCH</option>
+                            <option>DELETE</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label>Путь</label>
+                        <input id="path" placeholder="/posts/1">
+                    </div>
+
+                    <div>
+                        <label>Ожидаемый статус</label>
+                        <input id="expectedStatus" value="200" placeholder="200">
+                    </div>
+                </div>
+
+                <details class="simple-details">
+                    <summary>Query, headers, body</summary>
+
+                    <div class="simple-subsection-head">
+                        <div>
+                            <b>Query params</b>
+                            <span>/posts?userId=1</span>
+                        </div>
+                        <button onclick="addQueryRow()">+ Параметр</button>
+                    </div>
+                    <div id="queryRows" class="simple-dynamic-list"></div>
+
+                    <div class="simple-subsection-head">
+                        <div>
+                            <b>Headers</b>
+                            <span>Content-Type, Authorization и другие</span>
+                        </div>
+                        <button onclick="addHeaderRow()">+ Header</button>
+                    </div>
+                    <div id="headerRows" class="simple-dynamic-list"></div>
+
+                    <label>Body JSON</label>
+                    <textarea id="bodyJson" class="simple-code" placeholder='{"title":"test"}'></textarea>
+                </details>
+            </section>
+
+            <section class="simple-card">
+                <div class="simple-section-head">
+                    <div>
+                        <h2>Проверки ответа</h2>
+                        <p>Статус, поля JSON, типы, текст, regex.</p>
+                    </div>
+                    <button onclick="addAssertRow()">+ Проверка</button>
+                </div>
+
+                <div id="assertRows" class="simple-dynamic-list"></div>
+
+                <details class="simple-details">
+                    <summary>Схема ответа</summary>
+
+                    <label>Файл схемы</label>
+                    <input id="contractFile" value="schemas/jsonplaceholder-simple/post.schema.json" placeholder="schemas/response.schema.json">
+                </details>
+            </section>
+        </div>
+
+        <section class="simple-card">
+            <div class="simple-section-head">
+                <div>
+                    <h2>Подготовка данных</h2>
+                    <p>Действия, которые выполняются перед основным запросом: получить токен, создать данные, отправить Kafka-событие.</p>
+                </div>
+                <button onclick="addBeforeAction()">+ Добавить действие</button>
+            </div>
+
+            <div id="beforeActions" class="simple-dynamic-list"></div>
+        </section>
+
+        <div class="simple-work-grid">
+            <section class="simple-card">
+                <div class="simple-section-head">
+                    <div>
+                        <h2>Результат запуска</h2>
+                        <p>Краткий итог последнего запуска из конструктора.</p>
+                    </div>
+                    <button class="simple-primary" onclick="runScenarioFromUi()">Запустить</button>
+                </div>
+
+                <div id="runStatus" class="simple-run-status">Запуск ещё не выполнялся.</div>
+            </section>
+
+            <section class="simple-card">
+                <details class="simple-details json-details" open>
+                    <summary>Технический JSON</summary>
+                    <pre id="jsonPreview" class="simple-json-preview"></pre>
+                </details>
+            </section>
+        </div>
+    </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,148 @@
+{
+  "baseUrl": "https://jsonplaceholder.typicode.com",
+  "timeoutMs": 15000,
+  "integrations": {
+    "loadUser1": {
+      "type": "http",
+      "method": "GET",
+      "url": "https://jsonplaceholder.typicode.com/users/1",
+      "expectedStatus": 200,
+      "saveAs": {
+        "userId": "response.id"
+      }
+    }
+  },
+  "tests": [
+    {
+      "testId": "GET_POST_1_RETURNS_POST",
+      "name": "Получение поста №1 возвращает данные поста",
+      "method": "GET",
+      "path": "/posts/1",
+      "expectedStatus": 200,
+      "contractFile": "schemas/jsonplaceholder-simple/post.schema.json",
+      "assert": {
+        "status": {
+          "eq": 200
+        },
+        "response.id": {
+          "eq": 1
+        },
+        "response.userId": {
+          "eq": 1
+        }
+      }
+    },
+    {
+      "testId": "GET_POSTS_BY_USER_1_RETURNS_LIST",
+      "name": "Список постов пользователя №1 возвращает массив",
+      "beforeTest": [
+        "loadUser1"
+      ],
+      "method": "GET",
+      "path": "/posts",
+      "expectedStatus": 200,
+      "query": {
+        "userId": "${userId}"
+      },
+      "contractFile": "schemas/jsonplaceholder-simple/post-list.schema.json",
+      "assert": {
+        "status": {
+          "eq": 200
+        },
+        "response": {
+          "type": "array"
+        },
+        "response[0].userId": {
+          "eq": 1
+        }
+      }
+    },
+    {
+      "testId": "GET_USER_1_RETURNS_PROFILE",
+      "name": "Пользователь №1 возвращает профиль",
+      "method": "GET",
+      "path": "/users/1",
+      "expectedStatus": 200,
+      "contractFile": "schemas/jsonplaceholder-simple/user.schema.json",
+      "assert": {
+        "status": {
+          "eq": 200
+        },
+        "response.id": {
+          "eq": 1
+        },
+        "response.username": {
+          "eq": "Bret"
+        },
+        "response.company.name": {
+          "eq": "Romaguera-Crona"
+        }
+      }
+    },
+    {
+      "testId": "GET_POST_1_COMMENTS_RETURNS_COMMENTS",
+      "name": "Комментарии к посту №1 возвращают массив",
+      "method": "GET",
+      "path": "/posts/1/comments",
+      "expectedStatus": 200,
+      "contractFile": "schemas/jsonplaceholder-simple/comment-list.schema.json",
+      "assert": {
+        "status": {
+          "eq": 200
+        },
+        "response": {
+          "type": "array"
+        },
+        "response[0].postId": {
+          "eq": 1
+        },
+        "response[0].email": {
+          "matches": "^[^@]+@[^@]+\\.[^@]+$"
+        }
+      }
+    },
+    {
+      "testId": "POST_POSTS_RETURNS_CREATED_FAKE_POST",
+      "name": "Создание поста возвращает fake-ресурс",
+      "method": "POST",
+      "path": "/posts",
+      "expectedStatus": 201,
+      "headers": {
+        "Content-type": "application/json; charset=UTF-8"
+      },
+      "body": {
+        "title": "api test post",
+        "body": "created from builder",
+        "userId": 1
+      },
+      "contractFile": "schemas/jsonplaceholder-simple/created-post.schema.json",
+      "assert": {
+        "status": {
+          "eq": 201
+        },
+        "response.id": {
+          "eq": 101
+        },
+        "response.title": {
+          "eq": "api test post"
+        }
+      }
+    },
+    {
+      "testId": "DELETE_POST_1_RETURNS_EMPTY_OBJECT",
+      "name": "Удаление поста №1 возвращает пустой объект",
+      "method": "DELETE",
+      "path": "/posts/1",
+      "expectedStatus": 200,
+      "contractFile": "schemas/jsonplaceholder-simple/empty-object.schema.json",
+      "assert": {
+        "status": {
+          "eq": 200
+        },
+        "response": {
+          "type": "object"
+        }
+      }
+    }
+  ]
+}

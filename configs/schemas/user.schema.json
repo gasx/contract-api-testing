@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "JSONPlaceholder User",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "username",
+    "email",
+    "address",
+    "phone",
+    "website",
+    "company"
+  ],
+  "properties": {
+    "id": {
+      "type": "integer"
+    },
+    "name": {
+      "type": "string"
+    },
+    "username": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "address": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "Address",
+      "type": "object",
+      "required": [
+        "street",
+        "suite",
+        "city",
+        "zipcode",
+        "geo"
+      ],
+      "properties": {
+        "street": {
+          "type": "string"
+        },
+        "suite": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "zipcode": {
+          "type": "string"
+        },
+        "geo": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "title": "Geo",
+          "type": "object",
+          "required": [
+            "lat",
+            "lng"
+          ],
+          "properties": {
+            "lat": {
+              "type": "string"
+            },
+            "lng": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "phone": {
+      "type": "string"
+    },
+    "website": {
+      "type": "string"
+    },
+    "company": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "Company",
+      "type": "object",
+      "required": [
+        "name",
+        "catchPhrase",
+        "bs"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "catchPhrase": {
+          "type": "string"
+        },
+        "bs": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

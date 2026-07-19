@@ -496,7 +496,7 @@ function renderCharts(passed, failed) {
             datasets: [
                 {
                     data: [passed, failed],
-                    backgroundColor: ['#22c55e', '#ef4444'],
+                    backgroundColor: ['#8FBFA3', '#D99AA5'],
                     borderWidth: 0
                 }
             ]
@@ -505,7 +505,7 @@ function renderCharts(passed, failed) {
             plugins: {
                 legend: {
                     labels: {
-                        color: '#e5e7eb'
+                        color: '#475569'
                     }
                 }
             }
@@ -531,7 +531,7 @@ function renderCharts(passed, failed) {
                 {
                     label: 'Количество ошибок',
                     data: Object.values(errorMap),
-                    backgroundColor: '#38bdf8',
+                    backgroundColor: '#A7B7D9',
                     borderRadius: 8
                 }
             ]
@@ -539,18 +539,18 @@ function renderCharts(passed, failed) {
         options: {
             scales: {
                 x: {
-                    ticks: { color: '#e5e7eb' },
-                    grid: { color: '#263244' }
+                    ticks: { color: '#475569' },
+                    grid: { color: '#E6E3DA' }
                 },
                 y: {
-                    ticks: { color: '#e5e7eb' },
-                    grid: { color: '#263244' }
+                    ticks: { color: '#475569' },
+                    grid: { color: '#E6E3DA' }
                 }
             },
             plugins: {
                 legend: {
                     labels: {
-                        color: '#e5e7eb'
+                        color: '#475569'
                     }
                 }
             }
@@ -679,3 +679,193 @@ load().catch(error => {
         escapeHtml(error.message) +
         '</div>';
 });
+
+/* Request curl component v1 */
+
+function copyCurl(button) {
+    const root = button.closest('.curl-component');
+    const pre = root ? root.querySelector('pre') : null;
+    const text = pre ? pre.innerText : '';
+
+    if (!text) {
+        return;
+    }
+
+    navigator.clipboard.writeText(text).then(() => {
+        const oldText = button.innerText;
+        button.innerText = 'Скопировано';
+
+        setTimeout(() => {
+            button.innerText = oldText;
+        }, 1200);
+    });
+}
+
+function renderCurlComponent(request) {
+    const curl = request && request.curl
+        ? String(request.curl)
+        : '';
+
+    if (!curl) {
+        return (
+            '<div class="curl-component">' +
+            '<div class="request-part-title">curl запроса</div>' +
+            '<span class="small">curl не сохранён для этого запуска</span>' +
+            '</div>'
+        );
+    }
+
+    return (
+        '<details class="curl-component">' +
+        '<summary>curl запроса</summary>' +
+        '<button type="button" class="curl-copy-button" onclick="copyCurl(this); event.stopPropagation()">Скопировать curl</button>' +
+        '<pre class="curl-body">' + escapeHtml(curl) + '</pre>' +
+        '</details>'
+    );
+}
+
+function renderRequestInfo(result) {
+    const request = result.request || {};
+    const method = request.method || result.method;
+    const path = request.path || result.target;
+    const query = request.query || {};
+    const headers = request.headers || {};
+    const body = request.body;
+
+    const queryString = Object.keys(query).length === 0
+        ? ''
+        : '?' + Object.keys(query)
+            .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(String(query[key])))
+            .join('&');
+
+    const displayUrl = request.fullUrl || (path + queryString);
+
+    return (
+        '<div class="request-box">' +
+        '<div class="request-line">' +
+        '<span class="method">' + safeHtml(method) + '</span> ' +
+        '<span>' + safeHtml(displayUrl) + '</span>' +
+        '</div>' +
+        renderCurlComponent(request) +
+        '<div class="request-grid">' +
+        renderMapPreview('Query', query) +
+        renderMapPreview('Headers', headers) +
+        '<div class="request-part">' +
+        '<div class="request-part-title">Body</div>' +
+        renderJsonPreview(body) +
+        '</div>' +
+        '</div>' +
+        '</div>'
+    );
+}
+
+/* End request curl component v1 */
+
+/* Request curl component v2 */
+
+function copyCurl(button) {
+    const root = button.closest('.curl-component');
+    const pre = root ? root.querySelector('pre') : null;
+    const text = pre ? pre.innerText : '';
+
+    if (!text) {
+        return;
+    }
+
+    navigator.clipboard.writeText(text).then(() => {
+        const oldText = button.innerText;
+        button.innerText = 'Скопировано';
+
+        setTimeout(() => {
+            button.innerText = oldText;
+        }, 1200);
+    });
+}
+
+function shellQuoteForUi(value) {
+    return "'" + String(value).replace(/'/g, "'\"'\"'") + "'";
+}
+
+function buildCurlFromRequest(method, url, headers, body) {
+    const parts = [];
+
+    parts.push('curl');
+    parts.push('-i');
+    parts.push('-X');
+    parts.push(shellQuoteForUi(String(method || 'GET').toUpperCase()));
+    parts.push(shellQuoteForUi(url));
+
+    Object.keys(headers || {}).forEach(key => {
+        parts.push('-H');
+        parts.push(shellQuoteForUi(key + ': ' + String(headers[key])));
+    });
+
+    if (body !== null && body !== undefined) {
+        const hasContentType = Object.keys(headers || {}).some(key => {
+            return key.toLowerCase() === 'content-type';
+        });
+
+        if (!hasContentType) {
+            parts.push('-H');
+            parts.push(shellQuoteForUi('Content-Type: application/json'));
+        }
+
+        parts.push('--data-raw');
+        parts.push(shellQuoteForUi(
+            typeof body === 'object'
+                ? JSON.stringify(body)
+                : String(body)
+        ));
+    }
+
+    return parts.join(' \\\n  ');
+}
+
+function renderCurlComponent(method, url, headers, body) {
+    const curl = buildCurlFromRequest(method, url, headers, body);
+
+    return (
+        '<details class="curl-component">' +
+        '<summary>curl запроса</summary>' +
+        '<button type="button" class="curl-copy-button" onclick="copyCurl(this); event.stopPropagation()">Скопировать curl</button>' +
+        '<pre class="curl-body">' + escapeHtml(curl) + '</pre>' +
+        '</details>'
+    );
+}
+
+function renderRequestInfo(result) {
+    const request = result.request || {};
+    const method = request.method || result.method;
+    const path = request.path || result.target;
+    const query = request.query || {};
+    const headers = request.headers || {};
+    const body = request.body;
+
+    const queryString = Object.keys(query).length === 0
+        ? ''
+        : '?' + Object.keys(query)
+            .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(String(query[key])))
+            .join('&');
+
+    const displayUrl = path + queryString;
+
+    return (
+        '<div class="request-box">' +
+        '<div class="request-line">' +
+        '<span class="method">' + safeHtml(method) + '</span> ' +
+        '<span>' + safeHtml(displayUrl) + '</span>' +
+        '</div>' +
+        renderCurlComponent(method, displayUrl, headers, body) +
+        '<div class="request-grid">' +
+        renderMapPreview('Query', query) +
+        renderMapPreview('Headers', headers) +
+        '<div class="request-part">' +
+        '<div class="request-part-title">Body</div>' +
+        renderJsonPreview(body) +
+        '</div>' +
+        '</div>' +
+        '</div>'
+    );
+}
+
+/* End request curl component v2 */

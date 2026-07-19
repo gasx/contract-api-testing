@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "JSONPlaceholder Todos List",
+  "type": "array",
+  "minItems": 1,
+  "items": {
+    "type": "object",
+    "required": [
+      "userId",
+      "id",
+      "title",
+      "completed"
+    ],
+    "properties": {
+      "userId": {
+        "type": "integer"
+      },
+      "id": {
+        "type": "integer"
+      },
+      "title": {
+        "type": "string"
+      },
+      "completed": {
+        "type": "boolean"
+      }
+    }
+  }
+}

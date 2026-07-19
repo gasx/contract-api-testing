@@ -1,16 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Patched Post Fake Response",
   "type": "object",
   "required": [
-    "userId",
     "id",
     "title",
-    "body"
+    "body",
+    "userId"
   ],
   "properties": {
-    "userId": {
-      "type": "integer"
-    },
     "id": {
       "type": "integer"
     },
@@ -19,7 +17,9 @@
     },
     "body": {
       "type": "string"
+    },
+    "userId": {
+      "type": "integer"
     }
-  },
-  "title": "JSONPlaceholder Post"
+  }
 }

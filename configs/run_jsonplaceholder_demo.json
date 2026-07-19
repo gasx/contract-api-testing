@@ -1,0 +1,332 @@
+{
+  "baseUrl": "https://jsonplaceholder.typicode.com",
+  "timeoutMs": 15000,
+  "integrations": {
+    "loadUser1": {
+      "type": "http",
+      "method": "GET",
+      "url": "https://jsonplaceholder.typicode.com/users/1",
+      "expectedStatus": 200,
+      "saveAs": {
+        "userId": "response.id",
+        "username": "response.username"
+      },
+      "assert": {
+        "status": {
+          "eq": 200
+        },
+        "response.id": {
+          "eq": 1
+        },
+        "response.username": {
+          "eq": "Bret"
+        },
+        "response.company.name": {
+          "eq": "Romaguera-Crona"
+        }
+      }
+    }
+  },
+  "tests": [
+    {
+      "testId": "GET_POST_1_RETURNS_EXPECTED_POST",
+      "name": "Получение поста №1 возвращает ожидаемый пост",
+      "description": "Проверяем одиночный ресурс /posts/1: статус, id, userId, title и тип body.",
+      "tags": [
+        "smoke",
+        "posts",
+        "single-resource"
+      ],
+      "method": "GET",
+      "path": "/posts/1",
+      "expectedStatus": 200,
+      "headers": {
+        "Accept": "application/json"
+      },
+      "contractFile": "schemas/post.schema.json",
+      "assert": {
+        "status": {
+          "eq": 200
+        },
+        "response.id": {
+          "eq": 1
+        },
+        "response.userId": {
+          "eq": 1
+        },
+        "response.title": {
+          "startsWith": "sunt aut facere"
+        },
+        "response.body": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "testId": "GET_USER_1_POSTS_USES_INTEGRATION_USER_ID",
+      "name": "Посты пользователя №1 выбираются через переменную интеграции",
+      "description": "Перед тестом вызываем интеграцию loadUser1, сохраняем userId и используем его в query-параметре.",
+      "tags": [
+        "scenario",
+        "integration",
+        "posts",
+        "query"
+      ],
+      "beforeTest": [
+        "loadUser1"
+      ],
+      "method": "GET",
+      "path": "/posts",
+      "expectedStatus": 200,
+      "headers": {
+        "Accept": "application/json"
+      },
+      "query": {
+        "userId": "${userId}"
+      },
+      "contractFile": "schemas/posts-list.schema.json",
+      "assert": {
+        "status": {
+          "eq": 200
+        },
+        "response": {
+          "type": "array"
+        },
+        "response[0].id": {
+          "eq": 1
+        },
+        "response[0].userId": {
+          "eq": 1
+        },
+        "response[9].id": {
+          "eq": 10
+        },
+        "response[9].userId": {
+          "eq": 1
+        }
+      }
+    },
+    {
+      "testId": "GET_POST_1_COMMENTS_RETURNS_ONLY_POST_1_COMMENTS",
+      "name": "Комментарии к посту №1 относятся только к этому посту",
+      "description": "Проверяем nested route /posts/1/comments: массив комментариев, postId, email и границы списка.",
+      "tags": [
+        "comments",
+        "nested-route",
+        "array"
+      ],
+      "method": "GET",
+      "path": "/posts/1/comments",
+      "expectedStatus": 200,
+      "headers": {
+        "Accept": "application/json"
+      },
+      "contractFile": "schemas/comments-list.schema.json",
+      "assert": {
+        "status": {
+          "eq": 200
+        },
+        "response": {
+          "type": "array"
+        },
+        "response[0].postId": {
+          "eq": 1
+        },
+        "response[0].email": {
+          "matches": "^[^@]+@[^@]+\\.[^@]+$"
+        },
+        "response[4].id": {
+          "eq": 5
+        },
+        "response[4].postId": {
+          "eq": 1
+        }
+      }
+    },
+    {
+      "testId": "GET_USER_1_RETURNS_PROFILE_WITH_ADDRESS_AND_COMPANY",
+      "name": "Пользователь №1 содержит профиль, адрес и компанию",
+      "description": "Проверяем вложенные поля пользователя: address.geo, company, username и email.",
+      "tags": [
+        "users",
+        "nested-object",
+        "profile"
+      ],
+      "method": "GET",
+      "path": "/users/1",
+      "expectedStatus": 200,
+      "headers": {
+        "Accept": "application/json"
+      },
+      "contractFile": "schemas/user.schema.json",
+      "assert": {
+        "status": {
+          "eq": 200
+        },
+        "response.id": {
+          "eq": 1
+        },
+        "response.username": {
+          "eq": "Bret"
+        },
+        "response.email": {
+          "contains": "Sincere"
+        },
+        "response.address.geo.lat": {
+          "eq": "-37.3159"
+        },
+        "response.address.geo.lng": {
+          "eq": "81.1496"
+        },
+        "response.company.name": {
+          "eq": "Romaguera-Crona"
+        }
+      }
+    },
+    {
+      "testId": "GET_USER_1_TODOS_RETURNS_TODO_LIST",
+      "name": "Список задач пользователя №1 возвращает todo-массив",
+      "description": "Проверяем /users/1/todos: первый и последний элемент, userId, completed и тип title.",
+      "tags": [
+        "todos",
+        "nested-route",
+        "array"
+      ],
+      "method": "GET",
+      "path": "/users/1/todos",
+      "expectedStatus": 200,
+      "headers": {
+        "Accept": "application/json"
+      },
+      "contractFile": "schemas/todos-list.schema.json",
+      "assert": {
+        "status": {
+          "eq": 200
+        },
+        "response": {
+          "type": "array"
+        },
+        "response[0].id": {
+          "eq": 1
+        },
+        "response[0].userId": {
+          "eq": 1
+        },
+        "response[0].completed": {
+          "eq": false
+        },
+        "response[19].id": {
+          "eq": 20
+        },
+        "response[19].userId": {
+          "eq": 1
+        }
+      }
+    },
+    {
+      "testId": "POST_POSTS_CREATES_FAKE_POST_AND_ECHOES_BODY",
+      "name": "Создание поста возвращает созданный fake-ресурс",
+      "description": "JSONPlaceholder не сохраняет ресурс навсегда, но POST /posts возвращает id=101 и тело запроса.",
+      "tags": [
+        "posts",
+        "create",
+        "body",
+        "fake-write"
+      ],
+      "method": "POST",
+      "path": "/posts",
+      "expectedStatus": 201,
+      "headers": {
+        "Accept": "application/json",
+        "Content-type": "application/json; charset=UTF-8"
+      },
+      "body": {
+        "title": "api test generated post",
+        "body": "created from contract-api-testing demo",
+        "userId": 1
+      },
+      "contractFile": "schemas/created-post.schema.json",
+      "assert": {
+        "status": {
+          "eq": 201
+        },
+        "response.id": {
+          "eq": 101
+        },
+        "response.title": {
+          "eq": "api test generated post"
+        },
+        "response.body": {
+          "contains": "contract-api-testing"
+        },
+        "response.userId": {
+          "eq": 1
+        }
+      }
+    },
+    {
+      "testId": "PATCH_POST_1_UPDATES_TITLE_IN_FAKE_RESPONSE",
+      "name": "Patch поста №1 изменяет title в fake-ответе",
+      "description": "PATCH /posts/1 возвращает обновлённый title и сохраняет остальные поля fake-ресурса.",
+      "tags": [
+        "posts",
+        "patch",
+        "body",
+        "fake-write"
+      ],
+      "method": "PATCH",
+      "path": "/posts/1",
+      "expectedStatus": 200,
+      "headers": {
+        "Accept": "application/json",
+        "Content-type": "application/json; charset=UTF-8"
+      },
+      "body": {
+        "title": "patched title from api test"
+      },
+      "contractFile": "schemas/patched-post.schema.json",
+      "assert": {
+        "status": {
+          "eq": 200
+        },
+        "response.id": {
+          "eq": 1
+        },
+        "response.title": {
+          "eq": "patched title from api test"
+        },
+        "response.userId": {
+          "eq": 1
+        },
+        "response.body": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "testId": "DELETE_POST_1_RETURNS_EMPTY_OBJECT",
+      "name": "Удаление поста №1 возвращает пустой объект",
+      "description": "DELETE /posts/1 у JSONPlaceholder имитирует удаление и возвращает пустой JSON-объект.",
+      "tags": [
+        "posts",
+        "delete",
+        "fake-write"
+      ],
+      "method": "DELETE",
+      "path": "/posts/1",
+      "expectedStatus": 200,
+      "headers": {
+        "Accept": "application/json"
+      },
+      "contractFile": "schemas/empty-object.schema.json",
+      "assert": {
+        "status": {
+          "eq": 200
+        },
+        "response": {
+          "type": "object"
+        }
+      }
+    }
+  ]
+}
