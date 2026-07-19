@@ -1,0 +1,585 @@
+let tests = [];
+let activeTestIndex = 0;
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function value(id) {
+    return document.getElementById(id).value.trim();
+}
+
+function numberValue(id, fallback) {
+    const parsed = Number(value(id));
+    return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function parseJsonOrNull(text) {
+    const trimmed = String(text || '').trim();
+
+    if (!trimmed) {
+        return null;
+    }
+
+    return JSON.parse(trimmed);
+}
+
+function parseExpectedValue(text) {
+    const trimmed = String(text || '').trim();
+
+    if (trimmed === '') {
+        return '';
+    }
+
+    try {
+        return JSON.parse(trimmed);
+    } catch (e) {
+        return trimmed;
+    }
+}
+
+function readMap(containerId) {
+    const result = {};
+
+    document.querySelectorAll('#' + containerId + ' .builder-row').forEach(row => {
+        const key = row.querySelector('.row-key').value.trim();
+        const val = row.querySelector('.row-value').value.trim();
+
+        if (key) {
+            result[key] = val;
+        }
+    });
+
+    return result;
+}
+
+function readAssertConfig() {
+    const result = {};
+
+    document.querySelectorAll('#assertRows .builder-assert-row').forEach(row => {
+        const path = row.querySelector('.assert-path').value.trim();
+        const operator = row.querySelector('.assert-operator').value.trim();
+        const expectedRaw = row.querySelector('.assert-expected').value.trim();
+
+        if (!path || !operator) {
+            return;
+        }
+
+        result[path] = {
+            [operator]: parseExpectedValue(expectedRaw)
+        };
+    });
+
+    return result;
+}
+
+function readCurrentTestFromForm() {
+    let body = null;
+
+    body = parseJsonOrNull(value('bodyJson'));
+
+    const query = readMap('queryRows');
+    const headers = readMap('headerRows');
+    const assertConfig = readAssertConfig();
+
+    const test = {
+        testId: value('testId') || 'NEW_API_TEST',
+        name: value('testName') || null,
+        description: value('testDescription') || null,
+        tags: value('tags')
+            .split(',')
+            .map(item => item.trim())
+            .filter(Boolean),
+        method: value('method') || 'GET',
+        path: value('path') || '/',
+        expectedStatus: numberValue('expectedStatus', 200),
+        contractFile: value('contractFile') || 'schemas/response.schema.json'
+    };
+
+    if (Object.keys(query).length > 0) {
+        test.query = query;
+    }
+
+    if (Object.keys(headers).length > 0) {
+        test.headers = headers;
+    }
+
+    if (body !== null) {
+        test.body = body;
+    }
+
+    if (Object.keys(assertConfig).length > 0) {
+        test.assert = assertConfig;
+    }
+
+    return test;
+}
+
+function saveActiveTest() {
+    if (tests.length === 0) {
+        return;
+    }
+
+    tests[activeTestIndex] = readCurrentTestFromForm();
+}
+
+function setInput(id, val) {
+    document.getElementById(id).value = val ?? '';
+}
+
+function clearRows(containerId) {
+    document.getElementById(containerId).innerHTML = '';
+}
+
+function addKeyValueRow(containerId, keyPlaceholder, valuePlaceholder, key = '', val = '') {
+    const container = document.getElementById(containerId);
+    const row = document.createElement('div');
+
+    row.className = 'builder-row';
+    row.innerHTML =
+        '<input class="row-key" placeholder="' + escapeHtml(keyPlaceholder) + '">' +
+        '<input class="row-value" placeholder="' + escapeHtml(valuePlaceholder) + '">' +
+        '<button type="button" onclick="this.parentElement.remove(); buildConfig()">×</button>';
+
+    container.appendChild(row);
+
+    row.querySelector('.row-key').value = key;
+    row.querySelector('.row-value').value = val;
+
+    row.querySelectorAll('input').forEach(input => {
+        input.addEventListener('input', buildConfig);
+    });
+
+    return row;
+}
+
+function addQueryRow(key = '', val = '') {
+    addKeyValueRow('queryRows', 'name', 'value', key, val);
+    buildConfig();
+}
+
+function addHeaderRow(key = '', val = '') {
+    addKeyValueRow('headerRows', 'Header-Name', 'value', key, val);
+    buildConfig();
+}
+
+function addAssertRow(path = '', operator = 'eq', expected = '') {
+    const container = document.getElementById('assertRows');
+    const row = document.createElement('div');
+
+    row.className = 'builder-row builder-assert-row';
+    row.innerHTML =
+        '<input class="assert-path" placeholder="response.number">' +
+        '<select class="assert-operator">' +
+        '<option>eq</option>' +
+        '<option>notEq</option>' +
+        '<option>exists</option>' +
+        '<option>isNull</option>' +
+        '<option>notNull</option>' +
+        '<option>gt</option>' +
+        '<option>gte</option>' +
+        '<option>lt</option>' +
+        '<option>lte</option>' +
+        '<option>contains</option>' +
+        '<option>matches</option>' +
+        '<option>startsWith</option>' +
+        '<option>endsWith</option>' +
+        '<option>type</option>' +
+        '</select>' +
+        '<input class="assert-expected" placeholder="12 или ACTIVE или true">' +
+        '<button type="button" onclick="this.parentElement.remove(); buildConfig()">×</button>';
+
+    container.appendChild(row);
+
+    row.querySelector('.assert-path').value = path;
+    row.querySelector('.assert-operator').value = operator;
+    row.querySelector('.assert-expected').value =
+        typeof expected === 'object'
+            ? JSON.stringify(expected)
+            : String(expected ?? '');
+
+    row.querySelectorAll('input, select').forEach(input => {
+        input.addEventListener('input', buildConfig);
+        input.addEventListener('change', buildConfig);
+    });
+
+    buildConfig();
+}
+
+function renderActiveTestToForm() {
+    const test = tests[activeTestIndex];
+
+    if (!test) {
+        return;
+    }
+
+    setInput('testId', test.testId || '');
+    setInput('testName', test.name || '');
+    setInput('testDescription', test.description || '');
+    setInput('tags', Array.isArray(test.tags) ? test.tags.join(',') : '');
+    setInput('method', test.method || 'GET');
+    setInput('expectedStatus', test.expectedStatus || 200);
+    setInput('path', test.path || '/');
+    setInput('contractFile', test.contractFile || 'schemas/response.schema.json');
+    setInput('bodyJson', test.body ? JSON.stringify(test.body, null, 2) : '');
+
+    clearRows('queryRows');
+    clearRows('headerRows');
+    clearRows('assertRows');
+
+    Object.entries(test.query || {}).forEach(([key, val]) => {
+        addKeyValueRow('queryRows', 'name', 'value', key, val);
+    });
+
+    Object.entries(test.headers || {}).forEach(([key, val]) => {
+        addKeyValueRow('headerRows', 'Header-Name', 'value', key, val);
+    });
+
+    Object.entries(test.assert || {}).forEach(([path, assertion]) => {
+        const operator = Object.keys(assertion || {})[0] || 'eq';
+        const expected = assertion[operator];
+        addAssertRow(path, operator, expected);
+    });
+
+    renderTestsList();
+    buildConfig(false);
+}
+
+function renderTestsList() {
+    const container = document.getElementById('testsList');
+
+    if (tests.length === 0) {
+        container.innerHTML = '<div class="empty-state">Тестов пока нет</div>';
+        return;
+    }
+
+    container.innerHTML = tests.map((test, index) => {
+        const activeClass = index === activeTestIndex ? ' test-list-item-active' : '';
+        const title = test.name || test.testId || 'Без названия';
+        const meta = [
+            test.method || 'GET',
+            test.path || '/',
+            'HTTP ' + (test.expectedStatus || 200)
+        ].join(' · ');
+
+        return (
+            '<button class="test-list-item' + activeClass + '" onclick="selectTest(' + index + ')">' +
+            '<span class="test-list-title">' + escapeHtml(title) + '</span>' +
+            '<span class="test-list-meta">' + escapeHtml(meta) + '</span>' +
+            '</button>'
+        );
+    }).join('');
+}
+
+function selectTest(index) {
+    try {
+        saveActiveTest();
+    } catch (e) {
+        alert('Сначала исправь ошибку в текущем тесте: ' + e.message);
+        return;
+    }
+
+    activeTestIndex = index;
+    renderActiveTestToForm();
+}
+
+function createDefaultTest(index) {
+    return {
+        testId: 'NEW_API_TEST_' + index,
+        name: 'Новый API-тест ' + index,
+        description: 'Описание проверки',
+        tags: ['smoke'],
+        method: 'GET',
+        path: '/',
+        expectedStatus: 200,
+        headers: {
+            Accept: 'application/json'
+        },
+        contractFile: 'schemas/response.schema.json'
+    };
+}
+
+function addTest() {
+    try {
+        if (tests.length > 0) {
+            saveActiveTest();
+        }
+    } catch (e) {
+        alert('Сначала исправь ошибку в текущем тесте: ' + e.message);
+        return;
+    }
+
+    tests.push(createDefaultTest(tests.length + 1));
+    activeTestIndex = tests.length - 1;
+    renderActiveTestToForm();
+}
+
+function duplicateTest() {
+    try {
+        saveActiveTest();
+    } catch (e) {
+        alert('Сначала исправь ошибку в текущем тесте: ' + e.message);
+        return;
+    }
+
+    const current = tests[activeTestIndex];
+
+    if (!current) {
+        return;
+    }
+
+    const copy = JSON.parse(JSON.stringify(current));
+    copy.testId = current.testId + '_COPY';
+    copy.name = (current.name || current.testId || 'Тест') + ' copy';
+
+    tests.splice(activeTestIndex + 1, 0, copy);
+    activeTestIndex = activeTestIndex + 1;
+
+    renderActiveTestToForm();
+}
+
+function deleteTest() {
+    if (tests.length <= 1) {
+        alert('Должен остаться хотя бы один тест');
+        return;
+    }
+
+    tests.splice(activeTestIndex, 1);
+    activeTestIndex = Math.max(0, activeTestIndex - 1);
+
+    renderActiveTestToForm();
+}
+
+function addIntegrationRow(name = '', method = 'GET', url = '', status = 200, extract = '') {
+    const container = document.getElementById('integrationRows');
+    const row = document.createElement('div');
+
+    row.className = 'integration-builder-card';
+    row.innerHTML =
+        '<div class="form-row">' +
+        '<div>' +
+        '<label class="field-label">Name</label>' +
+        '<input class="integration-name" placeholder="authToken">' +
+        '</div>' +
+        '<div>' +
+        '<label class="field-label">Method</label>' +
+        '<select class="integration-method">' +
+        '<option>GET</option>' +
+        '<option>POST</option>' +
+        '<option>PUT</option>' +
+        '<option>PATCH</option>' +
+        '<option>DELETE</option>' +
+        '</select>' +
+        '</div>' +
+        '</div>' +
+        '<label class="field-label">URL</label>' +
+        '<input class="integration-url" placeholder="https://api.example.test/auth">' +
+        '<label class="field-label">Expected status</label>' +
+        '<input class="integration-status" value="200">' +
+        '<label class="field-label">Extract vars</label>' +
+        '<div class="small">Формат: token=response.token, clientId=response.id</div>' +
+        '<input class="integration-extract" placeholder="uuid=response.uuid">' +
+        '<button type="button" class="remove-wide" onclick="this.parentElement.remove(); buildConfig()">Удалить интеграцию</button>';
+
+    container.appendChild(row);
+
+    row.querySelector('.integration-name').value = name;
+    row.querySelector('.integration-method').value = method;
+    row.querySelector('.integration-url').value = url;
+    row.querySelector('.integration-status').value = status;
+    row.querySelector('.integration-extract').value = extract;
+
+    row.querySelectorAll('input, select').forEach(input => {
+        input.addEventListener('input', buildConfig);
+        input.addEventListener('change', buildConfig);
+    });
+
+    buildConfig();
+}
+
+function readIntegrations() {
+    const integrations = {};
+
+    document.querySelectorAll('#integrationRows .integration-builder-card').forEach(row => {
+        const name = row.querySelector('.integration-name').value.trim();
+        const method = row.querySelector('.integration-method').value.trim();
+        const url = row.querySelector('.integration-url').value.trim();
+        const expectedStatus = Number(row.querySelector('.integration-status').value.trim()) || 200;
+        const extractRaw = row.querySelector('.integration-extract').value.trim();
+
+        if (!name || !url) {
+            return;
+        }
+
+        const integration = {
+            type: 'http',
+            method,
+            url,
+            expectedStatus
+        };
+
+        const extract = {};
+        extractRaw
+            .split(',')
+            .map(item => item.trim())
+            .filter(Boolean)
+            .forEach(item => {
+                const parts = item.split('=');
+                const varName = String(parts[0] || '').trim();
+                const path = String(parts.slice(1).join('=') || '').trim();
+
+                if (varName && path) {
+                    extract[varName] = path;
+                }
+            });
+
+        if (Object.keys(extract).length > 0) {
+            integration.extract = extract;
+        }
+
+        integrations[name] = integration;
+    });
+
+    return integrations;
+}
+
+function buildConfig(shouldSaveActive = true) {
+    try {
+        if (shouldSaveActive && tests.length > 0) {
+            saveActiveTest();
+        }
+
+        renderTestsList();
+
+        const integrations = readIntegrations();
+
+        const config = {
+            baseUrl: value('baseUrl') || 'https://api.example.test',
+            timeoutMs: numberValue('timeoutMs', 10000)
+        };
+
+        if (Object.keys(integrations).length > 0) {
+            config.integrations = integrations;
+        }
+
+        config.tests = tests;
+
+        const json = JSON.stringify(config, null, 2);
+        document.getElementById('jsonPreview').innerText = json;
+
+        return json;
+    } catch (e) {
+        document.getElementById('jsonPreview').innerText =
+            'Ошибка в форме: ' + e.message;
+
+        return null;
+    }
+}
+
+async function copyConfig() {
+    const json = buildConfig();
+
+    if (!json) {
+        return;
+    }
+
+    try {
+        await navigator.clipboard.writeText(json);
+        alert('JSON скопирован');
+    } catch (e) {
+        alert('Не удалось скопировать автоматически. Скопируй JSON из блока справа.');
+    }
+}
+
+function downloadConfig() {
+    const json = buildConfig();
+
+    if (!json) {
+        return;
+    }
+
+    const fileName = 'run_config_' + new Date()
+        .toISOString()
+        .slice(0, 19)
+        .replace(/[^0-9]+/g, '_') + '.json';
+
+    const blob = new Blob([json], {
+        type: 'application/json'
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = fileName;
+    link.click();
+
+    URL.revokeObjectURL(url);
+}
+
+[
+    'baseUrl',
+    'timeoutMs',
+    'testId',
+    'testName',
+    'testDescription',
+    'tags',
+    'method',
+    'expectedStatus',
+    'path',
+    'contractFile',
+    'bodyJson'
+].forEach(id => {
+    document.getElementById(id).addEventListener('input', buildConfig);
+    document.getElementById(id).addEventListener('change', buildConfig);
+});
+
+tests = [
+    {
+        testId: 'GET_NUMBER_RETURNS_NUMBER_FIELD',
+        name: 'getNumber возвращает поле number',
+        description: 'Проверяем, что ручка возвращает JSON с числовым полем number.',
+        tags: ['smoke', 'get', 'contract'],
+        method: 'GET',
+        path: '/getNumber',
+        expectedStatus: 200,
+        headers: {
+            Accept: 'application/json'
+        },
+        contractFile: 'schemas/get-number.schema.json',
+        assert: {
+            'response.number': {
+                eq: 12
+            }
+        }
+    }
+];
+
+activeTestIndex = 0;
+renderActiveTestToForm();
+buildConfig();
+
+function setBuilderTab(name, button) {
+    document.querySelectorAll('.builder-tab').forEach(tab => {
+        tab.classList.remove('builder-tab-active');
+    });
+
+    document.querySelectorAll('.builder-tab-button').forEach(item => {
+        item.classList.remove('builder-tab-button-active');
+    });
+
+    const tab = document.getElementById('builderTab-' + name);
+
+    if (tab) {
+        tab.classList.add('builder-tab-active');
+    }
+
+    if (button) {
+        button.classList.add('builder-tab-button-active');
+    }
+}

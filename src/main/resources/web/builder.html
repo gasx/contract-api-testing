@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>API Test Builder</title>
+
+    <style>
+        :root {
+            --bg: #f7f7f4;
+            --panel: #ffffff;
+            --panel-soft: #fbfbf8;
+            --text: #202123;
+            --muted: #6b6c73;
+            --border: #deded8;
+            --border-soft: #ecece6;
+            --accent: #202123;
+            --success: #16803c;
+            --danger: #b42318;
+            --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            min-height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        button,
+        input,
+        select,
+        textarea {
+            font: inherit;
+        }
+
+        button,
+        .builder-link {
+            min-height: 36px;
+            padding: 0 14px;
+            border: 1px solid #d4d4cf;
+            border-radius: 8px;
+            background: #fff;
+            color: var(--text);
+            font-size: 14px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        button:hover,
+        .builder-link:hover {
+            background: #f1f1ed;
+        }
+
+        .primary-button {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 24px;
+            padding: 18px 28px;
+            border-bottom: 1px solid var(--border);
+            background: var(--panel);
+        }
+
+        .title {
+            font-size: 22px;
+            font-weight: 750;
+        }
+
+        .subtitle {
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 320px minmax(0, 1fr);
+            gap: 20px;
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 20px;
+            align-items: start;
+        }
+
+        .sidebar {
+            display: grid;
+            gap: 16px;
+        }
+
+        .main {
+            min-width: 0;
+        }
+
+        .panel {
+            margin-bottom: 16px;
+            padding: 18px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--panel);
+        }
+
+        .panel-title {
+            margin-bottom: 14px;
+            font-size: 16px;
+            font-weight: 750;
+        }
+
+        .panel-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            margin-top: 12px;
+            margin-bottom: 6px;
+            color: #555761;
+            font-size: 13px;
+            font-weight: 650;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            min-height: 38px;
+            padding: 9px 10px;
+            border: 1px solid #d4d4cf;
+            border-radius: 8px;
+            background: #fff;
+            color: var(--text);
+        }
+
+        textarea {
+            min-height: 88px;
+            resize: vertical;
+        }
+
+        .code-input,
+        .json-preview,
+        .run-status pre {
+            font-family: var(--mono);
+            font-size: 13px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .tabs button {
+            min-width: 120px;
+        }
+
+        .builder-lite-tab-active {
+            background: var(--accent) !important;
+            border-color: var(--accent) !important;
+            color: #fff !important;
+        }
+
+        .builder-lite-tab-content {
+            display: none;
+        }
+
+        .builder-lite-tab-content-active {
+            display: block;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .request-grid {
+            display: grid;
+            grid-template-columns: 140px minmax(0, 1fr) 160px;
+            gap: 12px;
+            align-items: end;
+        }
+
+        details {
+            margin-top: 14px;
+            padding: 12px;
+            border: 1px solid var(--border-soft);
+            border-radius: 8px;
+            background: var(--panel-soft);
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 700;
+            color: #343541;
+        }
+
+        .dynamic-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .builder-lite-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 38px;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .builder-lite-assert-row {
+            grid-template-columns: minmax(0, 1.2fr) 150px minmax(0, 1fr) 38px;
+        }
+
+        .builder-lite-row button,
+        .builder-lite-assert-row button {
+            padding: 0;
+        }
+
+        .tests {
+            display: grid;
+            gap: 8px;
+        }
+
+        .builder-lite-test {
+            display: grid;
+            gap: 4px;
+            width: 100%;
+            height: auto;
+            min-height: 58px;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .builder-lite-test b {
+            font-size: 14px;
+        }
+
+        .builder-lite-test small {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .builder-lite-test-active {
+            border-color: var(--accent) !important;
+            background: #f1f1ed !important;
+        }
+
+        .row-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .row-actions button {
+            flex: 1;
+        }
+
+        .integration-card,
+        .builder-lite-integration {
+            padding: 14px;
+            border: 1px solid var(--border-soft);
+            border-radius: 8px;
+            background: var(--panel-soft);
+        }
+
+        .integration-fields {
+            display: none;
+            margin-top: 12px;
+        }
+
+        .inner-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-top: 14px;
+            margin-bottom: 8px;
+        }
+
+        .json-preview {
+            margin: 0;
+            padding: 16px;
+            overflow: auto;
+            max-height: 620px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #111827;
+            color: #e5e7eb;
+            line-height: 1.55;
+        }
+
+        .run-status {
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--panel-soft);
+            line-height: 1.6;
+        }
+
+        .builder-lite-run-pass {
+            margin-bottom: 8px;
+            color: var(--success);
+            font-weight: 750;
+        }
+
+        .builder-lite-run-fail {
+            margin-bottom: 8px;
+            color: var(--danger);
+            font-weight: 750;
+        }
+
+        .note {
+            margin: 8px 0 12px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .remove-button,
+        .builder-lite-remove {
+            width: 100%;
+            margin-top: 12px;
+        }
+
+        @media (max-width: 1000px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .page-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .grid-2,
+            .request-grid,
+            .builder-lite-row,
+            .builder-lite-assert-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+    <script src="/builder.js?v=inline-styles-1" defer></script>
+</head>
+
+<body>
+<header class="page-header">
+    <div>
+        <div class="title">API Test Builder</div>
+        <div class="subtitle">Редактор сценариев автотестов</div>
+    </div>
+
+    <div class="header-actions">
+        <button class="primary-button" onclick="runScenarioFromUi()">Запустить</button>
+        <a href="/" class="builder-link">Отчёт</a>
+        <button onclick="copyConfig()">Скопировать JSON</button>
+        <button onclick="downloadConfig()">Скачать JSON</button>
+    </div>
+</header>
+
+<div class="layout">
+    <aside class="sidebar">
+        <section class="panel">
+            <div class="panel-title">Проект</div>
+
+            <label>Base URL</label>
+            <input id="baseUrl" value="https://jsonplaceholder.typicode.com">
+
+            <label>Timeout, ms</label>
+            <input id="timeoutMs" value="15000">
+        </section>
+
+        <section class="panel">
+            <div class="panel-head">
+                <div class="panel-title" style="margin:0">Тесты</div>
+                <button onclick="addTest()">+ Новый</button>
+            </div>
+
+            <div id="testsList" class="tests builder-lite-tests"></div>
+
+            <div class="row-actions">
+                <button onclick="duplicateTest()">Дублировать</button>
+                <button onclick="deleteTest()">Удалить</button>
+            </div>
+        </section>
+    </aside>
+
+    <main class="main">
+        <nav class="tabs builder-lite-tabs">
+            <button class="builder-lite-tab-active" onclick="showMainTab('scenario', this)">Сценарий</button>
+            <button onclick="showMainTab('json', this)">JSON</button>
+            <button onclick="showMainTab('result', this)">Результат</button>
+        </nav>
+
+        <section id="mainTab-scenario" class="builder-lite-tab-content builder-lite-tab-content-active">
+            <section class="panel">
+                <div class="panel-title">Текущий тест</div>
+
+                <label>Название</label>
+                <input id="testName" placeholder="Получение поста №1 возвращает данные поста">
+
+                <details>
+                    <summary>Параметры теста</summary>
+
+                    <label>Test ID</label>
+                    <input id="testId" placeholder="GET_POST_1_RETURNS_POST">
+
+                    <label>Описание</label>
+                    <textarea id="testDescription"></textarea>
+
+                    <label>Tags</label>
+                    <input id="tags" placeholder="smoke,posts">
+                </details>
+            </section>
+
+            <section class="panel">
+                <div class="panel-title">Запрос</div>
+
+                <div class="request-grid">
+                    <div>
+                        <label>Method</label>
+                        <select id="method">
+                            <option>GET</option>
+                            <option>POST</option>
+                            <option>PUT</option>
+                            <option>PATCH</option>
+                            <option>DELETE</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label>Path</label>
+                        <input id="path" placeholder="/posts/1">
+                    </div>
+
+                    <div>
+                        <label>Status</label>
+                        <input id="expectedStatus" value="200">
+                    </div>
+                </div>
+
+                <label>Contract file</label>
+                <input id="contractFile" placeholder="schemas/jsonplaceholder-simple/post.schema.json">
+
+                <details>
+                    <summary>Query, headers и body</summary>
+
+                    <div class="inner-head">
+                        <b>Query params</b>
+                        <button onclick="addQueryRow()">+ query</button>
+                    </div>
+                    <div id="queryRows" class="dynamic-list"></div>
+
+                    <div class="inner-head">
+                        <b>Headers</b>
+                        <button onclick="addHeaderRow()">+ header</button>
+                    </div>
+                    <div id="headerRows" class="dynamic-list"></div>
+
+                    <label>Body JSON</label>
+                    <textarea id="bodyJson" class="code-input" placeholder='{"title":"test"}'></textarea>
+                </details>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head">
+                    <div class="panel-title" style="margin:0">Проверки</div>
+                    <button onclick="addAssertRow()">+ Проверка</button>
+                </div>
+
+                <div id="assertRows" class="dynamic-list"></div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head">
+                    <div>
+                        <div class="panel-title" style="margin:0">Подготовка данных</div>
+                        <div class="note">HTTP, mock, Kafka и другие действия перед основным запросом.</div>
+                    </div>
+                    <button onclick="addIntegrationRow()">+ действие</button>
+                </div>
+
+                <label>beforeTest</label>
+                <input id="beforeTest" placeholder="loadUser1,createClient">
+
+                <div id="integrationRows" class="dynamic-list"></div>
+            </section>
+        </section>
+
+        <section id="mainTab-json" class="builder-lite-tab-content">
+            <section class="panel">
+                <div class="panel-title">Итоговый JSON</div>
+                <pre id="jsonPreview" class="json-preview builder-lite-json-preview"></pre>
+            </section>
+        </section>
+
+        <section id="mainTab-result" class="builder-lite-tab-content">
+            <section class="panel">
+                <div class="panel-title">Результат запуска</div>
+                <div id="runStatus" class="run-status builder-lite-run-status">Запуск ещё не выполнялся.</div>
+            </section>
+        </section>
+    </main>
+</div>
+</body>
+</html>

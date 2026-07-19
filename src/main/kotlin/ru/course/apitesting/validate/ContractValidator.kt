@@ -4,6 +4,7 @@ import kotlinx.serialization.json.Json
 import ru.course.apitesting.config.ApiTestCase
 import ru.course.apitesting.http.HttpResult
 import ru.course.apitesting.report.FileTransferInfo
+import ru.course.apitesting.report.TestRequestInfo
 import ru.course.apitesting.report.TestResult
 import ru.course.apitesting.report.Violation
 import ru.course.apitesting.schema.JsonSchemaValidator
@@ -33,14 +34,7 @@ class ContractValidator {
                 details = http.error ?: "HTTP execution failed"
             )
 
-            return buildResult(
-                tc = tc,
-                contractId = contract.contractId,
-                expectedStatus = expectedStatus,
-                actualStatus = actualStatus,
-                violations = violations,
-                fileTransfers = fileTransfers
-            )
+            return buildResult(tc, contract.contractId, expectedStatus, actualStatus, violations, fileTransfers)
         }
 
         if (actualStatus != expectedStatus) {
@@ -56,10 +50,7 @@ class ContractValidator {
 
             if (
                 !tc.expectedContentType.isNullOrBlank() &&
-                !actualContentType.startsWith(
-                    tc.expectedContentType,
-                    ignoreCase = true
-                )
+                !actualContentType.startsWith(tc.expectedContentType, ignoreCase = true)
             ) {
                 violations += Violation(
                     code = "CONTENT_TYPE_MISMATCH",
@@ -76,14 +67,7 @@ class ContractValidator {
                 )
             }
 
-            return buildResult(
-                tc = tc,
-                contractId = contract.contractId,
-                expectedStatus = expectedStatus,
-                actualStatus = actualStatus,
-                violations = violations,
-                fileTransfers = fileTransfers
-            )
+            return buildResult(tc, contract.contractId, expectedStatus, actualStatus, violations, fileTransfers)
         }
 
         val responseText = http.bodyText ?: ""
@@ -97,14 +81,7 @@ class ContractValidator {
                 details = "Response body is not valid JSON: ${e.message}"
             )
 
-            return buildResult(
-                tc = tc,
-                contractId = contract.contractId,
-                expectedStatus = expectedStatus,
-                actualStatus = actualStatus,
-                violations = violations,
-                fileTransfers = fileTransfers
-            )
+            return buildResult(tc, contract.contractId, expectedStatus, actualStatus, violations, fileTransfers)
         }
 
         when (contract) {
@@ -139,14 +116,7 @@ class ContractValidator {
             }
         }
 
-        return buildResult(
-            tc = tc,
-            contractId = contract.contractId,
-            expectedStatus = expectedStatus,
-            actualStatus = actualStatus,
-            violations = violations,
-            fileTransfers = fileTransfers
-        )
+        return buildResult(tc, contract.contractId, expectedStatus, actualStatus, violations, fileTransfers)
     }
 
     private fun collectFileTransfers(
@@ -203,7 +173,17 @@ class ContractValidator {
             actualStatus = actualStatus,
             passed = !failed,
             violations = violations,
-            fileTransfers = fileTransfers
+            fileTransfers = fileTransfers,
+            name = tc.name,
+            description = tc.description,
+            tags = tc.tags,
+            request = TestRequestInfo(
+                method = tc.method.uppercase(),
+                path = tc.path,
+                headers = tc.headers,
+                query = tc.query,
+                body = tc.body
+            )
         )
     }
 }

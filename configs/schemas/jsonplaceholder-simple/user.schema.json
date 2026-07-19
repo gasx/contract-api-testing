@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["id", "name", "username", "email", "address", "company"],
+  "properties": {
+    "id": { "type": "integer" },
+    "name": { "type": "string" },
+    "username": { "type": "string" },
+    "email": { "type": "string" },
+    "address": { "type": "object" },
+    "company": { "type": "object" }
+  }
+}
